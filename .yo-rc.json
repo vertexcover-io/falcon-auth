@@ -1,0 +1,10 @@
+{
+  "generator-python-lib": {
+    "projectName": "falcon-auth",
+    "fullName": "Ritesh Kadmawala",
+    "email": "ritesh@loanzen.in",
+    "gitlabName": "c",
+    "ciProvider": "None",
+    "version": "3.0.2"
+  }
+}
