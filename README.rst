@@ -163,7 +163,7 @@ API
     :scale: 100%
     :target: https://falcon-auth.readthedocs.io/en/latest/?badge=latest
 
-.. |version| image:: https://img.shields.io/pypi/v/falcon-sslify.svg
+.. |version| image:: https://img.shields.io/pypi/v/falcon-auth.svg
     :target: https://pypi.python.org/pypi/falcon-auth
 
 .. |License| image:: http://img.shields.io/:license-mit-blue.svg
