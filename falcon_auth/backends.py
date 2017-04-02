@@ -56,7 +56,7 @@ class AuthBackend(object):
                 description='Invalid Authorization Header: Token Missing')
         elif len(parts) > 2:
             raise falcon.HTTPUnauthorized(
-                description='Invalid Authorization Header: Token Contain Spaces')
+                description='Invalid Authorization Header: Contains extra content')
 
         return parts[1]
 
@@ -199,7 +199,7 @@ class JWTAuthBackend(AuthBackend):
         user = self.user_loader(payload)
         if not user:
             raise falcon.HTTPUnauthorized(
-                description='Invalid JWT: User does not exist')
+                description='Invalid JWT Credentials')
 
         return user
 
@@ -258,6 +258,7 @@ class BasicAuthBackend(AuthBackend):
 
     def _extract_credentials(self, req):
         auth = req.get_header('Authorization')
+        print("auth header", auth)
         token = self.parse_auth_token_from_request(auth_header=auth)
         try:
             token = base64.b64decode(token).decode('utf-8')
@@ -280,7 +281,6 @@ class BasicAuthBackend(AuthBackend):
         token, verifies the username/password and return either a ``user``
         object if successful else raise an `falcon.HTTPUnauthoried exception`
         """
-
         username, password = self._extract_credentials(req)
         user = self.user_loader(username, password)
         if not user:
@@ -300,7 +300,9 @@ class BasicAuthBackend(AuthBackend):
         if not username or not password:
             raise ValueError('`user_payload` must contain both username and password')
 
-        return base64.b64encode(f'{username}:{password}')
+        token = f'{username}:{password}'.encode('utf-8')
+        token_b64 = base64.b64encode(token).decode('utf-8', 'ignore')
+        return f'{self.auth_header_prefix} {token_b64}'
 
 
 class TokenAuthBackend(BasicAuthBackend):
@@ -338,7 +340,7 @@ class TokenAuthBackend(BasicAuthBackend):
         user = self.user_loader(token)
         if not user:
             raise falcon.HTTPUnauthorized(
-                description='Invalid Token. Please login again')
+                description='Invalid Token')
 
         return user
 
@@ -350,7 +352,7 @@ class TokenAuthBackend(BasicAuthBackend):
         if not token:
             raise ValueError('`user_payload` must provide api token')
 
-        return token
+        return f'{self.auth_header_prefix} {token}'
 
 
 class MultiAuthBackend(AuthBackend):
@@ -386,12 +388,12 @@ class MultiAuthBackend(AuthBackend):
             except Exception:
                 pass
 
-        return None
+        raise falcon.HTTPUnauthorized(description='Authorization Failed')
 
     def get_auth_token(self, user_payload):
         for backend in self.backends:
             try:
-                auth_token = backend.get_auth_token()
+                auth_token = backend.get_auth_token(user_payload)
                 return auth_token
             except Exception:
                 pass

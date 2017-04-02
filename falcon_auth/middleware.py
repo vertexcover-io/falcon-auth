@@ -36,8 +36,10 @@ class FalconAuthMiddleware(object):
     def __init__(self, backend, exempt_routes=None, exempt_methods=None):
         self.backend = backend
         if not isinstance(backend, AuthBackend):
-            raise 'Invalid authentication backend {}. ' \
-                  'Must inherit `falcon.auth.backends.AuthBackend`'.format(backend)
+            raise ValueError(
+                'Invalid authentication backend {}. '
+                'Must inherit `falcon.auth.backends.AuthBackend`'.format(backend)
+            )
 
         self.exempt_routes = exempt_routes or []
         self.exempt_methods = exempt_methods or ['OPTIONS']
@@ -49,22 +51,15 @@ class FalconAuthMiddleware(object):
             auth_settings['exempt_routes'].append(req.path)
 
         for key in ('exempt_methods', 'backend'):
-            auth_settings[key] = auth_settings.get(key, getattr(self, key))
+            auth_settings[key] = auth_settings.get(key) or getattr(self, key)
 
         return auth_settings
 
-    def process_resource(self, req, resp, resource, **kwargs):
-        auth_setting = self._get_auth_settings(resource)
+    def process_resource(self, req, resp, resource, *args, **kwargs):
+        auth_setting = self._get_auth_settings(req, resource)
         if (req.path in auth_setting['exempt_routes'] or
-            req.method in auth_setting['exempt_methods'] or
-                not auth_setting['backend']):
+            req.method in auth_setting['exempt_methods']):
             return
 
         backend = auth_setting['backend']
-        user = backend.authenticate(req, resp, resource, **kwargs)
-        if user:
-            req.context['user'] = user
-            return
-
-        raise falcon.HTTPUnauthorized(description='Authorization Failed')
-
+        req.context['user'] = backend.authenticate(req, resp, resource, **kwargs)
