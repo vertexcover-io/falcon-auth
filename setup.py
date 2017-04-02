@@ -29,5 +29,5 @@ setup(
         'virtualenv>=15.0.1,<16.0.0'
     ],
     url='https://github.com/loanzen/falcon-auth',
-    version='1.0.0'
+    version='1.0.1'
 )
