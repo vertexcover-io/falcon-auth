@@ -141,7 +141,7 @@ to exercise the tests. You can check the test coverage by running
 ``py.test --cov falcon_auth``
 
 API
----
+----
 .. autoclass:: falcon_auth.FalconAuthMiddleware
     :members:
 

@@ -10,7 +10,7 @@ import falcon
 import jwt
 from jwt import InvalidTokenError
 
-from serializer import ExtendedJSONEncoder
+from falcon_auth.serializer import ExtendedJSONEncoder
 
 
 class AuthBackend(object):
