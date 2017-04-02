@@ -1,7 +1,7 @@
 falcon-auth
 ===========
 
-|version| |docs|
+|version| |docs| |License|
 
 A falcon middleware + authentication backends that adds authentication layer
 to you app/api service.
@@ -22,7 +22,7 @@ This package exposes a falcon middleware which takes an authentication backend
 as an input and use it to authenticate requests. You can specify some routes and
 methods which are exempted from authentication. Once the middleware authenticates
 the request using the specified authentication backend, it add the authenticated
-user to the `request context`
+user to the ``request context``
 
 .. code:: python
 
@@ -109,15 +109,42 @@ user to the `request context`
             user = req.context['user']
             resp.body = "User Found: {}".format(user['username'])
 
+Authentication Backends
+-----------------------
+
++ **Basic Authentication**
+
+Implements `HTTP Basic Authentication <http://tools.ietf.org/html/rfc2617>`__
+wherein the HTTP ``Authorization`` header contains the user
+credentials(username and password) encoded using ``base64`` and a prefix (typically Basic)
+
++ **Token Authentication**
+
+Implements a Simple Token Based Authentication Scheme where HTTP ``Authorization``
+header contains a prefix (typically Token) followed by an `API Token`
+
++ **JWT Authentication**
+
+Token based authentication using the `JSON Web Token standard <https://jwt.io/introduction/>`__
+
++ **Multi Backend Authentication**
+
+A Backend which comprises of multiple backends and requires any of them to authenticate
+the request successfully
+
+Tests
+-----
+
+This library comes with a good set of tests which are included in ``tests/``. To run
+install ``pytest`` and simply invoke ``py.test`` or ``python setup.py test``
+to exercise the tests. You can check the test coverage by running
+``py.test --cov falcon_auth``
 
 API
 ---
 .. autoclass:: falcon_auth.FalconAuthMiddleware
     :members:
 
-
-Authentication Backends
------------------------
 .. autoclass:: falcon_auth.BasicAuthBackend
     :members:
 
@@ -131,5 +158,5 @@ Authentication Backends
     :members:
 
 
-
-
+.. |License| image:: http://img.shields.io/:license-mit-blue.svg
+   :target: https://pypi.python.org/pypi//

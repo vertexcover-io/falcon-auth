@@ -2,43 +2,7 @@
 Setup script.
 """
 
-from distutils.core import Command
 from setuptools import setup
-
-
-class Coverage(Command):
-    """
-    Coverage setup.
-    """
-
-    description = (
-        "Run test suite against single instance of"
-        "Python and collect coverage data."
-    )
-    user_options = []
-
-    def initialize_options(self):
-        pass
-
-    def finalize_options(self):
-        pass
-
-    def run(self):
-        import coverage
-        import unittest
-
-        cov = coverage.coverage(config_file='.coveragerc')
-        cov.erase()
-        cov.start()
-
-        test_loader = unittest.TestLoader()
-        test_suite = test_loader.discover(start_dir='tests')
-        unittest.TextTestRunner().run(test_suite)
-
-        cov.stop()
-        cov.save()
-        cov.report()
-        cov.html_report()
 
 
 setup(
@@ -46,9 +10,6 @@ setup(
     author_email='ritesh@loanzen.in',
     description='falcon-auth',
     download_url='',
-    cmdclass={
-        'coverage': Coverage,
-    },
     install_requires=[
         'falcon',
         'pyjwt'

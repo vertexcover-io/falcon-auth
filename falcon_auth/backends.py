@@ -206,6 +206,7 @@ class JWTAuthBackend(AuthBackend):
     def get_auth_token(self, user_payload):
         """
         Create a JWT authentication token from ``user_payload``
+
         Args:
             user_payload(dict, required): A `dict` containing required information
                 to create authentication token
