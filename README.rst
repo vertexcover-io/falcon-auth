@@ -158,5 +158,13 @@ API
     :members:
 
 
+.. |docs| image:: https://readthedocs.org/projects/docs/badge/?version=latest
+    :alt: Documentation Status
+    :scale: 100%
+    :target: https://falcon-auth.readthedocs.io/en/latest/?badge=latest
+
+.. |version| image:: https://img.shields.io/pypi/v/falcon-sslify.svg
+    :target: https://pypi.python.org/pypi/falcon-auth
+
 .. |License| image:: http://img.shields.io/:license-mit-blue.svg
-   :target: https://pypi.python.org/pypi//
+   :target: https://pypi.python.org/pypi/falcon-auth/
