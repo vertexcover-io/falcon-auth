@@ -49,7 +49,7 @@ class AuthBackend(object):
         if parts[0].lower() != self.auth_header_prefix.lower():
             raise falcon.HTTPUnauthorized(description=
                                           'Invalid Authorization Header: '
-                                          'Must start with {}'.format(self.auth_header_prefix))
+                                          'Must start with {0}'.format(self.auth_header_prefix))
 
         elif len(parts) == 1:
             raise falcon.HTTPUnauthorized(
@@ -173,10 +173,11 @@ class JWTAuthBackend(AuthBackend):
         auth_header = req.get_header('Authorization')
         token = self.parse_auth_token_from_request(auth_header=auth_header)
 
-        options = {'verify_' + claim: True for claim in self.verify_claims}
+        options = dict(('verify_' + claim, True) for claim in self.verify_claims)
 
         options.update(
-            {'require_' + claim: True for claim in self.required_claims})
+            dict(('require_' + claim, True) for claim in self.required_claims)
+        )
 
         try:
 
@@ -381,7 +382,7 @@ class MultiAuthBackend(AuthBackend):
 
         for backend in backends:
             if not isinstance(backend, AuthBackend):
-                raise ValueError(('Invalid authentication backend {}.'
+                raise ValueError(('Invalid authentication backend {0}.'
                                  'Must inherit `falcon.auth.backends.AuthBackend`')
                                  .format(backend))
 

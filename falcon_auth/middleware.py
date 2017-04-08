@@ -37,7 +37,7 @@ class FalconAuthMiddleware(object):
         self.backend = backend
         if not isinstance(backend, AuthBackend):
             raise ValueError(
-                'Invalid authentication backend {}. '
+                'Invalid authentication backend {0}. '
                 'Must inherit `falcon.auth.backends.AuthBackend`'.format(backend)
             )
 
