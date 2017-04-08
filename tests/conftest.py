@@ -75,9 +75,11 @@ class AuthResource:
 
 
 def get_basic_auth_token(username, password, prefix='Basic'):
-    token = f'{username}:{password}'.encode('utf-8')
+    token = '{username}:{password}'.format(
+                username=username, password=password).encode('utf-8')
+
     token_b64 = base64.b64encode(token).decode('utf-8', 'ignore')
-    return f'{prefix} {token_b64}'
+    return '{prefix} {token_b64}'.format(prefix=prefix, token_b64=token_b64)
 
 
 @pytest.fixture(scope='function')
@@ -110,8 +112,9 @@ def token_backend(user):
 
     return TokenAuthBackend(user_loader)
 
+
 def get_token_auth(user):
-    return f'Token {user.token}'
+    return 'Token {token}'.format(token=user.token)
 
 
 class TokenAuthFixture:
@@ -153,7 +156,7 @@ def get_jwt_token(user, prefix='JWT'):
     }
 
     jwt_token = jwt.encode(payload, SECRET_KEY).decode('utf-8')
-    return f'{prefix} {jwt_token}'
+    return '{prefix} {jwt_token}'.format(prefix=prefix, jwt_token=jwt_token)
 
 
 class JWTAuthFixture:

@@ -86,7 +86,9 @@ class AuthBackend(object):
                 to create authentication token
         """
         auth_token = self.get_auth_token(user_payload)
-        return f'{self.auth_header_prefix} f{auth_token}'
+        return '{auth_header_prefix} {auth_token}'.format(
+            auth_header_prefix=self.auth_header_prefix, auth_token=auth_token
+        )
 
 
 class JWTAuthBackend(AuthBackend):
@@ -301,9 +303,13 @@ class BasicAuthBackend(AuthBackend):
         if not username or not password:
             raise ValueError('`user_payload` must contain both username and password')
 
-        token = f'{username}:{password}'.encode('utf-8')
+        token = '{username}:{password}'.format(
+            username=username, password=password).encode('utf-8')
+
         token_b64 = base64.b64encode(token).decode('utf-8', 'ignore')
-        return f'{self.auth_header_prefix} {token_b64}'
+
+        return '{auth_header_prefix} {token_b64}'.format(
+            auth_header_prefix=self.auth_header_prefix, token_b64=token_b64)
 
 
 class TokenAuthBackend(BasicAuthBackend):
@@ -353,7 +359,8 @@ class TokenAuthBackend(BasicAuthBackend):
         if not token:
             raise ValueError('`user_payload` must provide api token')
 
-        return f'{self.auth_header_prefix} {token}'
+        return '{auth_header_prefix} {token}'.format(
+            auth_header_prefix=self.auth_header_prefix, token=token)
 
 
 class MultiAuthBackend(AuthBackend):

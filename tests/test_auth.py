@@ -30,14 +30,15 @@ class TestWithBasicAuth(BasicAuthFixture, ResourceFixture):
         assert 'Must start with Basic' in resp.text
 
     def test_non_bas64_encoded_fail(self, client, user):
-        auth_token = f'Basic {user.username}_{user.password}'
+        auth_token = 'Basic {username}_{password}'.format(
+            username=user.username, password=user.password)
         resp = simulate_request(client, '/auth', auth_token=auth_token)
         assert resp.status_code == 401
         assert 'Unable to decode credentials' in resp.text
 
     def test_invalid_token_format_fail(self, client):
         b64 = base64.b64encode(b'invalid_token').decode('utf-8', 'ignore')
-        auth_token = f'Basic {b64}'
+        auth_token = 'Basic {b64}'.format(b64=b64)
         resp = simulate_request(client, '/auth', auth_token=auth_token)
         assert resp.status_code == 401
         assert 'Unable to decode credentials' in resp.text
@@ -70,19 +71,19 @@ class TestWithTokenAuth(TokenAuthFixture, ResourceFixture):
         assert resp.json == user.to_dict()
 
     def test_invalid_prefix_fail(self, client, user):
-        auth_token = f'Invalid {user.token}'
+        auth_token = 'Invalid {token}'.format(token=user.token)
         resp = simulate_request(client, '/auth', auth_token=auth_token)
         assert resp.status_code == 401
         assert 'Must start with Token' in resp.text
 
     def test_token_missing_fail(self, client, user):
-        auth_token = f'Token'
+        auth_token = 'Token'
         resp = simulate_request(client, '/auth', auth_token=auth_token)
         assert resp.status_code == 401
         assert 'Token Missing' in resp.text
 
     def test_invalid_creds_fail(self, client, user):
-        auth_token = f'Token InvalidToken'
+        auth_token = 'Token InvalidToken'
         resp = simulate_request(client, '/auth', auth_token=auth_token)
         assert resp.status_code == 401
         assert 'Invalid Token' in resp.text
@@ -90,7 +91,8 @@ class TestWithTokenAuth(TokenAuthFixture, ResourceFixture):
     def test_valid_auth_custom_prefix_success(self, client,
                                               backend, user):
         backend.auth_header_prefix = 'ApiToken'
-        auth_token = f'{backend.auth_header_prefix} {user.token}'
+        auth_token = '{auth_header_prefix} {token}'.format(
+            auth_header_prefix=backend.auth_header_prefix, token=user.token)
         resp = simulate_request(client, '/auth', auth_token=auth_token)
         assert resp.status_code == 200
         assert resp.json == user.to_dict()
@@ -189,7 +191,7 @@ class TestInvalidAuthorizationHeader(BasicAuthFixture, ResourceFixture):
         assert 'Missing Authorization Header' in resp.text
 
     def test_auth_header_extra_content(self, auth_token, client):
-        auth_token = f'{auth_token} extra'
+        auth_token = '{auth_token} extra'.format(auth_token=auth_token)
         resp = simulate_request(client, '/auth', auth_token=auth_token)
         assert resp.status_code == 401
         assert 'contains extra content' in resp.text.lower()
@@ -199,7 +201,7 @@ class TestWithCustomResourceBackend(BasicAuthFixture, ResourceCustomBackend):
 
     def test_with_token_auth_success(self, client, user):
 
-        auth_token = f'Token {user.token}'
+        auth_token = 'Token {token}'.format(token=user.token)
         resp = simulate_request(client, '/auth', auth_token=auth_token)
         assert resp.status_code == 200
         assert resp.json == user.to_dict()
