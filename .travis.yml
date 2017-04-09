@@ -10,6 +10,9 @@ python:
 before_install:
   - pip install --upgrade pytest
 
-install: "pip install -r requirements.txt"
+install: "pip install -r requirements-dev.txt"
 
-script: python setup.py test
+script: py.test --cov-report term-missing --cov=falcon_auth
+
+after_success:
+  - coveralls

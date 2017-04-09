@@ -1,7 +1,7 @@
 falcon-auth
 ===========
 
-|version| |docs| |build| |license|
+|version| |docs| |build| |coverage| |license|
 
 A falcon middleware + authentication backends that adds authentication layer
 to you app/api service.
@@ -171,3 +171,6 @@ API
 
 .. |build| image:: https://travis-ci.org/loanzen/falcon-auth.svg?branch=master
     :target: https://travis-ci.org/loanzen/falcon-auth
+
+.. |coverage| image:: https://coveralls.io/repos/github/loanzen/falcon-auth/badge.svg?branch=master
+    :target: https://coveralls.io/github/loanzen/falcon-auth?branch=master
