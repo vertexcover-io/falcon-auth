@@ -1,7 +1,7 @@
 falcon-auth
 ===========
 
-|version| |docs| |License|
+|version| |docs| |build| |license|
 
 A falcon middleware + authentication backends that adds authentication layer
 to you app/api service.
@@ -166,5 +166,8 @@ API
 .. |version| image:: https://img.shields.io/pypi/v/falcon-auth.svg
     :target: https://pypi.python.org/pypi/falcon-auth
 
-.. |License| image:: http://img.shields.io/:license-mit-blue.svg
-   :target: https://pypi.python.org/pypi/falcon-auth/
+.. |license| image:: http://img.shields.io/:license-mit-blue.svg
+    :target: https://pypi.python.org/pypi/falcon-auth/
+
+.. |build| image:: https://travis-ci.org/loanzen/falcon-auth.svg?branch=master
+    :target: https://travis-ci.org/loanzen/falcon-auth
