@@ -222,10 +222,10 @@ class JWTAuthBackend(AuthBackend):
             payload['iat'] = now
 
         if 'nbf' in self.verify_claims:
-            payload['nbf'] = now + timedelta(seconds=self.leeway)
+            payload['nbf'] = now + self.leeway
 
         if 'exp' in self.verify_claims:
-            payload['exp'] = now + timedelta(seconds=self.expiration_delta)
+            payload['exp'] = now + self.expiration_delta
 
         return jwt.encode(payload, self.secret_key,
                           json_encoder=ExtendedJSONEncoder).decode('utf-8')
