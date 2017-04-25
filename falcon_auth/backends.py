@@ -42,21 +42,30 @@ class AuthBackend(object):
         """
 
         if not auth_header:
-            raise falcon.HTTPUnauthorized(description='Missing Authorization Header')
+            raise falcon.HTTPUnauthorized(
+                title='401 Unauthorized',
+                description='Missing Authorization Header',
+                challenges=None)
 
         parts = auth_header.split()
 
         if parts[0].lower() != self.auth_header_prefix.lower():
-            raise falcon.HTTPUnauthorized(description=
-                                          'Invalid Authorization Header: '
-                                          'Must start with {0}'.format(self.auth_header_prefix))
+            raise falcon.HTTPUnauthorized(
+                title='401 Unauthorized',
+                description='Invalid Authorization Header: '
+                            'Must start with {0}'.format(self.auth_header_prefix),
+                challenges=None)
 
         elif len(parts) == 1:
             raise falcon.HTTPUnauthorized(
-                description='Invalid Authorization Header: Token Missing')
+                title='401 Unauthorized',
+                description='Invalid Authorization Header: Token Missing',
+                challenges=None)
         elif len(parts) > 2:
             raise falcon.HTTPUnauthorized(
-                description='Invalid Authorization Header: Contains extra content')
+                title='401 Unauthorized',
+                description='Invalid Authorization Header: Contains extra content',
+                challenges=None)
 
         return parts[1]
 
@@ -188,7 +197,10 @@ class JWTAuthBackend(AuthBackend):
                                  audience=self.audience,
                                  leeway=self.leeway)
         except InvalidTokenError as ex:
-            raise falcon.HTTPUnauthorized(description=str(ex))
+            raise falcon.HTTPUnauthorized(
+                title='401 Unauthorized',
+                description=str(ex),
+                challenges=None)
 
         return payload
 
@@ -202,7 +214,9 @@ class JWTAuthBackend(AuthBackend):
         user = self.user_loader(payload)
         if not user:
             raise falcon.HTTPUnauthorized(
-                description='Invalid JWT Credentials')
+                title='401 Unauthorized',
+                description='Invalid JWT Credentials',
+                challenges=None)
 
         return user
 
@@ -268,14 +282,18 @@ class BasicAuthBackend(AuthBackend):
             token = base64.b64decode(token).decode('utf-8')
 
         except Exception as ex:
-            raise falcon.HTTPUnauthorized('Invalid Authorization Header: '
-                                          'Unable to decode credentials')
+            raise falcon.HTTPUnauthorized(
+                title='401 Unauthorized',
+                description='Invalid Authorization Header: Unable to decode credentials',
+                challenges=None)
 
         try:
             username, password = token.split(':')
         except ValueError:
             raise falcon.HTTPUnauthorized(
-                'Invalid Authorization: Unable to decode credentials')
+                title='401 Unauthorized',
+                description='Invalid Authorization: Unable to decode credentials',
+                challenges=None)
 
         return username, password
 
@@ -289,7 +307,9 @@ class BasicAuthBackend(AuthBackend):
         user = self.user_loader(username, password)
         if not user:
             raise falcon.HTTPUnauthorized(
-                description='Invalid Username/Password')
+                title='401 Unauthorized',
+                description='Invalid Username/Password',
+                challenges=None)
 
         return user
 
@@ -348,7 +368,9 @@ class TokenAuthBackend(BasicAuthBackend):
         user = self.user_loader(token)
         if not user:
             raise falcon.HTTPUnauthorized(
-                description='Invalid Token')
+                title='401 Unauthorized',
+                description='Invalid Token',
+                challenges=None)
 
         return user
 
@@ -397,7 +419,10 @@ class MultiAuthBackend(AuthBackend):
             except Exception:
                 pass
 
-        raise falcon.HTTPUnauthorized(description='Authorization Failed')
+        raise falcon.HTTPUnauthorized(
+            title='401 Unauthorized',
+            description='Authorization Failed',
+            challenges=None)
 
     def get_auth_token(self, user_payload):
         for backend in self.backends:
