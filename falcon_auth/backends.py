@@ -386,6 +386,26 @@ class TokenAuthBackend(BasicAuthBackend):
             auth_header_prefix=self.auth_header_prefix, token=token)
 
 
+class NoneAuthBackend(AuthBackend):
+    """
+    Dummy authentication backend.
+
+    This backend does not perform any authentication check. It can be used with the
+    MultiAuthBackend in order to provide a fallback for an unauthenticated user.
+
+    Args:
+        user_loader(function, required): A callback function that is called
+            without any arguments and returns an `unauthenticated user`.
+
+    """
+
+    def __init__(self, user_loader):
+        self.user_loader = user_loader
+
+    def authenticate(self, req, resp, resource):
+        return self.user_loader()
+
+
 class MultiAuthBackend(AuthBackend):
 
     """

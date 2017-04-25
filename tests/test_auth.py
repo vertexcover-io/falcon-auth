@@ -144,6 +144,14 @@ class TestWithJWTAuth(JWTAuthFixture, ResourceFixture):
         assert 'Issuer parameter must be provided' in str(ex.value)
 
 
+class TestWithNoneAuth(NoneAuthFixture, ResourceFixture):
+
+    def test_valid_auth_success(self, client, none_user):
+        resp = simulate_request(client, '/auth')
+        assert resp.status_code == 200
+        assert resp.json == none_user.to_dict()
+
+
 class TestWithMultiBackendAuth(MultiBackendAuthFixture, ResourceFixture):
     def test_valid_auth_success_any_backend(self, client, user):
         basic_auth_token = get_basic_auth_token(user.username, user.password)
