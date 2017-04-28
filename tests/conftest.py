@@ -15,7 +15,7 @@ import pytest
 from falcon import testing
 
 from falcon_auth.backends import BasicAuthBackend, JWTAuthBackend, \
-    MultiAuthBackend
+    NoneAuthBackend, MultiAuthBackend
 from falcon_auth.middleware import FalconAuthMiddleware
 from falcon_auth.backends import TokenAuthBackend
 
@@ -54,6 +54,11 @@ class User(object):
 @pytest.fixture(scope='function')
 def user():
     return User(_id=1, username='joe', password='pass')
+
+
+@pytest.fixture(scope='function')
+def none_user():
+    return User(_id=0, username='anonymous', password=None)
 
 
 def create_app(auth_middleware, resource):
@@ -169,6 +174,18 @@ class JWTAuthFixture:
     def auth_token(self, user):
 
         return get_jwt_token(user)
+
+
+@pytest.fixture(scope='function')
+def none_backend(none_user):
+    return NoneAuthBackend(lambda: none_user)
+
+
+class NoneAuthFixture:
+
+    @pytest.fixture(scope='function')
+    def backend(self, none_user):
+        return none_backend(none_user)
 
 
 class MultiBackendAuthFixture:

@@ -127,6 +127,10 @@ header contains a prefix (typically Token) followed by an `API Token`
 
 Token based authentication using the `JSON Web Token standard <https://jwt.io/introduction/>`__
 
++ **Dummy Authentication**
+
+Backend which does not perform any authentication checks
+
 + **Multi Backend Authentication**
 
 A Backend which comprises of multiple backends and requires any of them to authenticate
@@ -152,6 +156,9 @@ API
     :members:
 
 .. autoclass:: falcon_auth.JWTAuthBackend
+    :members:
+
+.. autoclass:: falcon_auth.NoneAuthBackend
     :members:
 
 .. autoclass:: falcon_auth.MultiAuthBackend
