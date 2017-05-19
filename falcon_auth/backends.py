@@ -276,7 +276,6 @@ class BasicAuthBackend(AuthBackend):
 
     def _extract_credentials(self, req):
         auth = req.get_header('Authorization')
-        print("auth header", auth)
         token = self.parse_auth_token_from_request(auth_header=auth)
         try:
             token = base64.b64decode(token).decode('utf-8')
