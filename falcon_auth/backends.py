@@ -435,7 +435,7 @@ class MultiAuthBackend(AuthBackend):
                 user = backend.authenticate(req, resp, resource)
                 if user:
                     return user
-            except Exception:
+            except falcon.HTTPUnauthorized:
                 pass
 
         raise falcon.HTTPUnauthorized(

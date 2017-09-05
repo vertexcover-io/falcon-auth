@@ -6,14 +6,14 @@ from __future__ import division
 from tests.conftest import *
 
 
-def simulate_request(client, url, method='POST', data=None, auth_token=None):
-    data = json.dumps(data) if data else None
+def simulate_request(client, url, method='POST', **kwargs):
     headers = {'Content-Type': 'application/json'}
+    auth_token = kwargs.pop('auth_token', None)
     if auth_token:
         headers['Authorization'] = auth_token
 
     return client.simulate_request(method=method, path=url,
-                                   body=data, headers=headers)
+                                   headers=headers, **kwargs)
 
 
 class TestWithBasicAuth(BasicAuthFixture, ResourceFixture):
@@ -174,6 +174,13 @@ class TestWithMultiBackendAuth(MultiBackendAuthFixture, ResourceFixture):
         auth_token = get_basic_auth_token(user.username, user.password)
         user_payload = {'username': user.username, 'password': user.password}
         assert backend.get_auth_token(user_payload) == auth_token
+
+    def test_backend_raises_exception(self, client, user, backend):
+        auth_token = get_basic_auth_token('Invalid', 'Invalid')
+        resp = simulate_request(client, '/auth', auth_token=auth_token,
+                                query_string='exception=True')
+        assert resp.status_code == 500
+        assert 'A custom error occured' in resp.text
 
 
 class TestWithExemptRoute(BasicAuthFixture, ResourceFixture):
