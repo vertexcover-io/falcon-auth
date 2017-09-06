@@ -188,23 +188,25 @@ class NoneAuthFixture:
         return none_backend(none_user)
 
 
+class CustomException(Exception):
+    pass
+
+
 class MultiBackendAuthFixture:
-
-    class ErroBackend(AuthBackend):
-
+    class ErrorBackend(AuthBackend):
         def __init__(self, user_loader=None):
             pass
 
         def authenticate(self, req, resp, resource):
             if req.get_param_as_bool('exception'):
-                raise falcon.HTTPInternalServerError('A custom error occured.')
+                raise CustomException
             else:
                 raise falcon.HTTPUnauthorized
 
     @pytest.fixture(scope='function')
     def backend(self, basic_auth_backend, token_backend):
         return MultiAuthBackend(
-            self.ErroBackend(),
+            self.ErrorBackend(),
             basic_auth_backend,
             token_backend,
         )

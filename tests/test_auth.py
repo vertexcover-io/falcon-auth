@@ -177,10 +177,9 @@ class TestWithMultiBackendAuth(MultiBackendAuthFixture, ResourceFixture):
 
     def test_backend_raises_exception(self, client, user, backend):
         auth_token = get_basic_auth_token('Invalid', 'Invalid')
-        resp = simulate_request(client, '/auth', auth_token=auth_token,
-                                query_string='exception=True')
-        assert resp.status_code == 500
-        assert 'A custom error occured' in resp.text
+        with pytest.raises(CustomException):
+            resp = simulate_request(client, '/auth', auth_token=auth_token,
+                                    query_string='exception=True')
 
 
 class TestWithExemptRoute(BasicAuthFixture, ResourceFixture):
