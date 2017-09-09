@@ -14,8 +14,8 @@ import jwt
 import pytest
 from falcon import testing
 
-from falcon_auth.backends import BasicAuthBackend, JWTAuthBackend, \
-    NoneAuthBackend, MultiAuthBackend
+from falcon_auth.backends import AuthBackend, BasicAuthBackend, \
+    JWTAuthBackend, NoneAuthBackend, MultiAuthBackend
 from falcon_auth.middleware import FalconAuthMiddleware
 from falcon_auth.backends import TokenAuthBackend
 
@@ -188,11 +188,28 @@ class NoneAuthFixture:
         return none_backend(none_user)
 
 
+class CustomException(Exception):
+    pass
+
+
 class MultiBackendAuthFixture:
+    class ErrorBackend(AuthBackend):
+        def __init__(self, user_loader=None):
+            pass
+
+        def authenticate(self, req, resp, resource):
+            if req.get_param_as_bool('exception'):
+                raise CustomException
+            else:
+                raise falcon.HTTPUnauthorized
 
     @pytest.fixture(scope='function')
     def backend(self, basic_auth_backend, token_backend):
-        return MultiAuthBackend(basic_auth_backend, token_backend)
+        return MultiAuthBackend(
+            self.ErrorBackend(),
+            basic_auth_backend,
+            token_backend,
+        )
 
 
 class ResourceFixture:
