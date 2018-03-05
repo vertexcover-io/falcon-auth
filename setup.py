@@ -32,13 +32,15 @@ if sys.argv[-1] == 'test':
     os.system('py.test')
     sys.exit()
 
+needs_pytest = {'pytest', 'test', 'ptr'}.intersection(sys.argv)
+pytest_runner = ['pytest-runner'] if needs_pytest else []
 
 setup(
     author='Ritesh Kadmawala',
     author_email='ritesh@loanzen.in',
     description='falcon-auth',
     download_url='',
-    setup_requires=['pytest-runner'],
+    setup_requires=pytest_runner,
     install_requires=[
         'falcon',
         'pyjwt'
