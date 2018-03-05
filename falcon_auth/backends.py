@@ -287,7 +287,7 @@ class BasicAuthBackend(AuthBackend):
                 challenges=None)
 
         try:
-            username, password = token.split(':')
+            username, password = token.split(':', 1)
         except ValueError:
             raise falcon.HTTPUnauthorized(
                 title='401 Unauthorized',
