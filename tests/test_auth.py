@@ -143,6 +143,21 @@ class TestWithJWTAuth(JWTAuthFixture, ResourceFixture):
 
         assert 'Issuer parameter must be provided' in str(ex.value)
 
+    def test_jwt_fields_and_alg_in_toker(self):
+        backend = JWTAuthBackend(lambda u:u, SECRET_KEY, 
+            algorithm='HS512', 
+            audience="test-aud", issuer="test-iss",
+            required_claims=['aud', 'iss']
+            )
+        token = backend.get_auth_token({})
+
+        header = jwt.get_unverified_header(token)
+        assert header['alg'] == 'HS512' # check algorithm
+
+        payload = jwt.decode(token, verify=False)
+        assert payload['aud'] == 'test-aud'
+        assert payload['iss'] == 'test-iss'
+        
 
 class TestWithNoneAuth(NoneAuthFixture, ResourceFixture):
 
