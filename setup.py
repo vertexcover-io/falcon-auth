@@ -5,7 +5,7 @@ import os
 import sys
 from setuptools import setup
 
-version = '1.1.0'
+version = '2.0.0'
 
 if sys.argv[-1] == 'tag':
     os.system("git tag -a %s -m 'version %s'" % (version, version))
@@ -32,17 +32,23 @@ if sys.argv[-1] == 'test':
     os.system('py.test')
     sys.exit()
 
+# From docs for pytest-runner
+needs_pytest = any(arg in ['pytest', 'test', 'ptr'] for arg in sys.argv)
+setup_requires = ['pytest-runner'] if needs_pytest else []
 
 setup(
     author='Ritesh Kadmawala',
     author_email='ritesh@loanzen.in',
     description='falcon-auth',
     download_url='',
-    setup_requires=['pytest-runner'],
+    setup_requires=setup_requires,
     install_requires=[
-        'falcon',
-        'pyjwt'
+        'falcon'
     ],
+    extras_require={
+        'backend-hawk': ['mohawk>=1.0.0,<2.0.0'],
+        'backend-jwt': ['pyjwt>=1.7.1,<2.0.0']
+    },
     license='MIT',
     name='falcon-auth',
     packages=[
@@ -57,8 +63,27 @@ setup(
         'codecov>=2.0.3,<3.0.0',
         'coverage>=4.0.3,<5.0.0',
         'tox>=2.3.1,<3.0.0',
-        'python-coveralls==2.9.0'
+        'python-coveralls>=2.9.1,<3.0.0'
     ],
     url='https://github.com/loanzen/falcon-auth',
-    version=version
+    version=version,
+    classifiers=[
+        "Development Status :: 5 - Production/Stable",
+        "Environment :: Web Environment",
+        "Framework :: Falcon",
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: OS Independent",
+        "Programming Language :: Python :: 2",
+        "Programming Language :: Python :: 2.6",
+        "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.3",
+        "Programming Language :: Python :: 3.4",
+        "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Topic :: Internet :: WWW/HTTP :: WSGI :: Middleware",
+        "Topic :: Software Development :: Libraries :: Python Modules",
+    ]
 )
