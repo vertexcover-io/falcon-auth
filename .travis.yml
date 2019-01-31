@@ -1,18 +1,49 @@
 language: python
-python:
-  - "2.6"
-  - "2.7"
-  - "3.3"
-  - "3.4"
-  - "3.5"
-  - "3.6"
+
+matrix:
+  include:
+    - python: 2.6
+      env:
+        - WITH_JWT=false
+          WITH_HAWK=true
+    - python: 2.7
+      env:
+        - WITH_JWT=true
+          WITH_HAWK=true
+    - python: 3.3
+      env:
+        - WITH_JWT=false
+          WITH_HAWK=false
+          SETUPTOOLS="setuptools<40.0.0"
+    - python: 3.4
+      env:
+        - WITH_JWT=true
+          WITH_HAWK=true
+    - python: 3.5
+      env:
+        - WITH_JWT=true
+          WITH_HAWK=true
+    - python: 3.6
+      env:
+        - WITH_JWT=true
+          WITH_HAWK=true
+    - python: 3.7
+      dist: xenial
+      env:
+        - WITH_JWT=true
+          WITH_HAWK=true
 
 before_install:
   - pip install --upgrade pytest
 
-install: "pip install -r requirements-dev.txt"
+install:
+  - "[[ -n \"$SETUPTOOLS\" ]] && pip install \"$SETUPTOOLS\" || true"
+  - "pip install -r requirements-dev.txt"
+  - "\"$WITH_JWT\" && pip install \"pyjwt>=1.7.0,<2.0.0\" || true"
+  - "\"$WITH_HAWK\" && pip install \"mohawk>=1.0.0,<2.0.0\" || true"
 
-script: py.test --cov-report term-missing --cov=falcon_auth
+script:
+  - py.test --cov-report term-missing --cov=falcon_auth
 
 after_success:
   - coveralls

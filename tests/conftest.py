@@ -10,15 +10,26 @@ import os
 from datetime import datetime, timedelta
 
 import falcon
-import jwt
 import pytest
 from falcon import testing
 
 from falcon_auth.backends import AuthBackend, BasicAuthBackend, \
-    JWTAuthBackend, NoneAuthBackend, MultiAuthBackend
+    JWTAuthBackend, NoneAuthBackend, MultiAuthBackend, HawkAuthBackend
 from falcon_auth.middleware import FalconAuthMiddleware
 from falcon_auth.backends import TokenAuthBackend
+from falcon_auth.serializer import ExtendedJSONEncoder
 
+try:
+    import jwt
+    jwt_available = pytest.mark.skipif(False, reason="jwt not installed")
+except ImportError:
+    jwt_available = pytest.mark.skipif(True, reason="jwt not installed")
+
+try:
+    import mohawk
+    hawk_available = pytest.mark.skipif(False, reason="hawk not installed")
+except ImportError:
+    hawk_available = pytest.mark.skipif(True, reason="hawk not installed")
 
 EXPIRATION_DELTA = 30 * 60
 
@@ -160,7 +171,8 @@ def get_jwt_token(user, prefix='JWT'):
         'exp': now + timedelta(seconds=EXPIRATION_DELTA)
     }
 
-    jwt_token = jwt.encode(payload, SECRET_KEY).decode('utf-8')
+    jwt_token = jwt.encode(payload, SECRET_KEY,
+                           json_encoder=ExtendedJSONEncoder).decode('utf-8')
     return '{prefix} {jwt_token}'.format(prefix=prefix, jwt_token=jwt_token)
 
 
@@ -174,6 +186,54 @@ class JWTAuthFixture:
     def auth_token(self, user):
 
         return get_jwt_token(user)
+
+
+@pytest.fixture(scope='function')
+def hawk_backend(user):
+    def user_loader(username):
+        return user if user.username == username else None
+
+    def credentials_map(username):
+        # Our backend will only know about the one user
+        creds = {
+            user.username: {
+                'id': user.username,
+                'key': user.password,
+                'algorithm': 'sha256',
+            }
+        }
+
+        return creds[username]
+
+    return HawkAuthBackend(
+        user_loader,
+        receiver_kwargs=dict(credentials_map=credentials_map))
+
+
+def get_hawk_token(user):
+    sender = mohawk.Sender(
+        credentials={
+            'id': user.username,
+            'key': user.password,
+            'algorithm': 'sha256',
+        },
+        url='http://falconframework.org/auth',
+        method='GET',
+        nonce='ABC123',
+        always_hash_content=False
+    )
+    return str(sender.request_header)
+
+
+class HawkAuthFixture:
+
+    @pytest.fixture(scope='function')
+    def backend(self, hawk_backend):
+        return hawk_backend
+
+    @pytest.fixture(scope='function')
+    def auth_token(self, user):
+        return get_hawk_token(user)
 
 
 @pytest.fixture(scope='function')
