@@ -15,4 +15,5 @@ Contents:
 
    readme
    contributing
+   contributors
    license
