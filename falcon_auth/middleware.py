@@ -57,7 +57,7 @@ class FalconAuthMiddleware(object):
 
     def process_resource(self, req, resp, resource, *args, **kwargs):
         auth_setting = self._get_auth_settings(req, resource)
-        if (req.path in auth_setting['exempt_routes'] or
+        if (req.uri_template in auth_setting['exempt_routes'] or
             req.method in auth_setting['exempt_methods']):
             return
 

@@ -77,6 +77,7 @@ def create_app(auth_middleware, resource):
     api = falcon.API(middleware=[auth_middleware])
 
     api.add_route('/auth', resource)
+    api.add_route('/posts/{post_id}', resource)
     return api
 
 
@@ -86,7 +87,7 @@ class AuthResource:
         user = req.context['user']
         resp.body = user.serialize()
 
-    def on_get(self, req, resp):
+    def on_get(self, req, resp, **kwargs):
         resp.body = 'Success'
 
 
