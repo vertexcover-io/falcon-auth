@@ -245,8 +245,17 @@ class JWTAuthBackend(AuthBackend):
         if 'exp' in self.verify_claims:
             payload['exp'] = now + self.expiration_delta
 
-        return jwt.encode(payload, self.secret_key,
-                          json_encoder=ExtendedJSONEncoder).decode('utf-8')
+        if self.audience is not None:
+            payload['aud'] = self.audience
+
+        if self.audience is not None:
+            payload['iss'] = self.issuer
+
+        return jwt.encode(
+            payload,
+            self.secret_key, 
+            algorithm=self.algorithm, 
+            json_encoder=ExtendedJSONEncoder).decode('utf-8')
 
 
 class BasicAuthBackend(AuthBackend):
