@@ -33,9 +33,6 @@ matrix:
         - WITH_JWT=true
           WITH_HAWK=true
 
-before_install:
-  - pip install --upgrade pytest
-
 install:
   - "[[ -n \"$SETUPTOOLS\" ]] && pip install \"$SETUPTOOLS\" || true"
   - "pip install -r requirements-dev.txt"
