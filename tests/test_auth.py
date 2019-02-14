@@ -257,9 +257,15 @@ class TestWithMultiBackendAuth(MultiBackendAuthFixture, ResourceFixture):
 
 
 class TestWithExemptRoute(BasicAuthFixture, ResourceFixture):
-    def test_no_auth_required(self, auth_middleware, client):
+    def test_exempt_static_route(self, auth_middleware, client):
         auth_middleware.exempt_routes = ['/auth']
         resp = simulate_request(client, '/auth', method='GET')
+        assert resp.status_code == 200
+        assert resp.text == 'Success'
+
+    def test_exempt_template_route(self, auth_middleware, client):
+        auth_middleware.exempt_routes = ['/posts/{post_id}']
+        resp = simulate_request(client, '/posts/1234', method='GET')
         assert resp.status_code == 200
         assert resp.text == 'Success'
 
