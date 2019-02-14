@@ -14,3 +14,5 @@ Contributors
 `Arkadiusz Bokowy <https://github.com/Arkq>`_ - Contributor
 
 `solarsail <https://github.com/solarsail>`_ - Contributor
+
+`Evgeny Loshinsky <https://github.com/ealoshinsky>`_ - Contributor
