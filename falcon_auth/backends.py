@@ -248,13 +248,13 @@ class JWTAuthBackend(AuthBackend):
         if self.audience is not None:
             payload['aud'] = self.audience
 
-        if self.audience is not None:
+        if self.issuer is not None:
             payload['iss'] = self.issuer
 
         return jwt.encode(
             payload,
-            self.secret_key, 
-            algorithm=self.algorithm, 
+            self.secret_key,
+            algorithm=self.algorithm,
             json_encoder=ExtendedJSONEncoder).decode('utf-8')
 
 
