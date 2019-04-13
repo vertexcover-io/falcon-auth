@@ -227,13 +227,26 @@ class TestWithNoneAuth(NoneAuthFixture, ResourceFixture):
 
 
 class TestWithMultiBackendAuth(MultiBackendAuthFixture, ResourceFixture):
-    def test_valid_auth_success_any_backend(self, client, user):
+    def test_valid_auth_success_basic_backend(self, client, user):
         basic_auth_token = get_basic_auth_token(user.username, user.password)
         resp = simulate_request(client, '/auth', auth_token=basic_auth_token)
         assert resp.status_code == 200
         assert resp.json == user.to_dict()
 
+    def test_valid_auth_success_token_backend(self, client, user):
         auth_token = get_token_auth(user)
+        resp = simulate_request(client, '/auth', auth_token=auth_token)
+        assert resp.status_code == 200
+        assert resp.json == user.to_dict()
+
+    def test_valid_auth_success_hawk_backend(self, client, user):
+        auth_token = get_hawk_token(user)
+        resp = simulate_request(client, '/auth', auth_token=auth_token)
+        assert resp.status_code == 200
+        assert resp.json == user.to_dict()
+
+    def test_valid_auth_success_jwt_backend(self, client, user):
+        auth_token = get_jwt_token(user)
         resp = simulate_request(client, '/auth', auth_token=auth_token)
         assert resp.status_code == 200
         assert resp.json == user.to_dict()

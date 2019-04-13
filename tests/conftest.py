@@ -265,11 +265,13 @@ class MultiBackendAuthFixture:
                 raise falcon.HTTPUnauthorized
 
     @pytest.fixture(scope='function')
-    def backend(self, basic_auth_backend, token_backend):
+    def backend(self, basic_auth_backend, token_backend, hawk_backend, jwt_backend):
         return MultiAuthBackend(
             self.ErrorBackend(),
             basic_auth_backend,
             token_backend,
+            hawk_backend,
+            jwt_backend,
         )
 
 
