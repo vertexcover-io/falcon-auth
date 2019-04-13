@@ -3,6 +3,7 @@
 from __future__ import absolute_import
 from __future__ import division
 
+import time
 from tests.conftest import *
 
 
@@ -50,7 +51,7 @@ class TestWithBasicAuth(BasicAuthFixture, ResourceFixture):
         auth_token = get_basic_auth_token('invalid', user.password)
         resp = simulate_request(client, '/auth', auth_token=auth_token)
         assert resp.status_code == 401
-        assert 'Invalid Username/Password' in resp.text
+        assert 'User not found for provided credentials' in resp.text
 
     def test_valid_auth_custom_prefix_success(self, client,
                                                  backend, user):
@@ -64,6 +65,49 @@ class TestWithBasicAuth(BasicAuthFixture, ResourceFixture):
     def test_backend_get_auth_token(self, user, backend, auth_token):
         user_payload = {'username': user.username, 'password': user.password}
         assert backend.get_auth_token(user_payload) == auth_token
+
+    def test_on_success_callback(self, user, backend, resource, auth_token):
+        callback_called = [False]
+
+        def on_success(req, resp, resrc, results):
+            callback_called[0] = True
+            assert results['backend'] is backend
+            assert results['user'] is user
+
+        app = create_app(FalconAuthMiddleware(backend, on_success=on_success), resource)
+        client = testing.TestClient(app)
+        resp = simulate_request(client, '/auth', auth_token=auth_token)
+        assert resp.status_code == 200
+        assert callback_called[0], 'on_success() not called'
+
+    def test_on_failure_callback(self, user, backend, resource):
+        callback_called = [False]
+
+        def on_failure(req, resp, resrc, exception):
+            callback_called[0] = True
+            assert isinstance(exception, BackendAuthenticationFailure)
+            assert not hasattr(exception, '__cause__') or not exception.__cause__
+
+        app = create_app(FalconAuthMiddleware(backend, on_failure=on_failure), resource)
+        client = testing.TestClient(app)
+        auth_token = get_basic_auth_token('invalid', user.password)
+        resp = simulate_request(client, '/auth', auth_token=auth_token)
+        assert resp.status_code == 401
+        assert callback_called[0], 'on_failure() not called'
+
+    def test_on_failure_callback_called_even_if_not_applicable(self, user, backend, resource):
+        callback_called = [False]
+
+        def on_failure(req, resp, resrc, exception):
+            callback_called[0] = True
+            assert isinstance(exception, BackendNotApplicable)
+
+        app = create_app(FalconAuthMiddleware(backend, on_failure=on_failure), resource)
+        client = testing.TestClient(app)
+        auth_token = get_token_auth(user)
+        resp = simulate_request(client, '/auth', auth_token=auth_token)
+        assert resp.status_code == 401
+        assert callback_called[0], 'on_failure() not called'
 
 
 class TestWithTokenAuth(TokenAuthFixture, ResourceFixture):
@@ -89,7 +133,7 @@ class TestWithTokenAuth(TokenAuthFixture, ResourceFixture):
         auth_token = 'Token InvalidToken'
         resp = simulate_request(client, '/auth', auth_token=auth_token)
         assert resp.status_code == 401
-        assert 'Invalid Token' in resp.text
+        assert 'User not found for provided credentials' in resp.text
 
     def test_valid_auth_custom_prefix_success(self, client,
                                               backend, user):
@@ -103,6 +147,34 @@ class TestWithTokenAuth(TokenAuthFixture, ResourceFixture):
     def test_backend_get_auth_token(self, user, backend, auth_token):
         user_payload = {'token': user.token}
         assert backend.get_auth_token(user_payload) == auth_token
+
+    def test_on_success_callback(self, user, backend, resource, auth_token):
+        callback_called = [False]
+
+        def on_success(req, resp, resrc, results):
+            callback_called[0] = True
+            assert results['backend'] is backend
+            assert results['user'] is user
+
+        app = create_app(FalconAuthMiddleware(backend, on_success=on_success), resource)
+        client = testing.TestClient(app)
+        resp = simulate_request(client, '/auth', auth_token=auth_token)
+        assert resp.status_code == 200
+        assert callback_called[0], 'on_success() not called'
+
+    def test_on_failure_callback(self, user, backend, resource):
+        callback_called = [False]
+
+        def on_failure(req, resp, resrc, exception):
+            callback_called[0] = True
+            assert isinstance(exception, UserNotFound)
+
+        app = create_app(FalconAuthMiddleware(backend, on_failure=on_failure), resource)
+        client = testing.TestClient(app)
+        auth_token = 'Token InvalidToken'
+        resp = simulate_request(client, '/auth', auth_token=auth_token)
+        assert resp.status_code == 401
+        assert callback_called[0], 'on_failure() not called'
 
 
 @jwt_available
@@ -130,7 +202,7 @@ class TestWithJWTAuth(JWTAuthFixture, ResourceFixture):
         auth_token = get_jwt_token(cloned_user)
         resp = simulate_request(client, '/auth', auth_token=auth_token)
         assert resp.status_code == 401
-        assert 'Invalid JWT Credentials' in resp.text
+        assert 'User not found for provided credentials' in resp.text
 
     def test_valid_auth_custom_prefix_success(self, client,
                                               backend, user, auth_token):
@@ -181,6 +253,36 @@ class TestWithJWTAuth(JWTAuthFixture, ResourceFixture):
         decoded_token = jwt.decode(auth_token, SECRET_KEY)
         assert decoded_token['user'] == user_payload
 
+    def test_on_success_callback(self, user, backend, resource, auth_token):
+        callback_called = [False]
+
+        def on_success(req, resp, resrc, results):
+            callback_called[0] = True
+            assert results['backend'] is backend
+            assert results['user'] is user
+
+        app = create_app(FalconAuthMiddleware(backend, on_success=on_success), resource)
+        client = testing.TestClient(app)
+        resp = simulate_request(client, '/auth', auth_token=auth_token)
+        assert resp.status_code == 200
+        assert callback_called[0], 'on_success() not called'
+
+    def test_on_failure_callback(self, user, backend, resource):
+        callback_called = [False]
+
+        def on_failure(req, resp, resrc, exception):
+            callback_called[0] = True
+            assert isinstance(exception, UserNotFound)
+
+        app = create_app(FalconAuthMiddleware(backend, on_failure=on_failure), resource)
+        client = testing.TestClient(app)
+        cloned_user = user.clone()
+        cloned_user.id = user.id + 1
+        auth_token = get_jwt_token(cloned_user)
+        resp = simulate_request(client, '/auth', auth_token=auth_token)
+        assert resp.status_code == 401
+        assert callback_called[0], 'on_failure() not called'
+
 
 @hawk_available
 class TestWithHawkAuth(HawkAuthFixture, ResourceFixture):
@@ -202,8 +304,7 @@ class TestWithHawkAuth(HawkAuthFixture, ResourceFixture):
         auth_token = get_hawk_token(cloned_user)
         resp = simulate_request(client, '/auth', method='GET', auth_token=auth_token)
         assert resp.status_code == 401
-        assert (resp.json['description']
-                == 'CredentialsLookupError(Could not find credentials for ID jane)')
+        assert resp.json['description'] == 'User not found for provided credentials'
 
     def test_invalid_password_fails(self, client, user):
         cloned_user = user.clone()
@@ -213,9 +314,36 @@ class TestWithHawkAuth(HawkAuthFixture, ResourceFixture):
         assert resp.status_code == 401
         assert 'MacMismatch(MACs do not match' in resp.json['description']
 
-    def test_init_receiver_credentials_map_none_fails(self):
-        with pytest.raises(ValueError) as ex:
-            HawkAuthBackend(lambda u: u, receiver_kwargs={})
+    def test_on_success_callback(self, user, backend, resource, auth_token):
+        callback_called = [False]
+
+        def on_success(req, resp, resrc, results):
+            callback_called[0] = True
+            assert results['backend'] is backend
+            assert results['user'] is user
+
+        app = create_app(FalconAuthMiddleware(backend, on_success=on_success), resource)
+        client = testing.TestClient(app)
+        resp = simulate_request(client, '/auth', method='GET', auth_token=auth_token)
+        assert resp.status_code == 200
+        assert callback_called[0], 'on_success() not called'
+
+    def test_on_failure_callback(self, user, backend, resource):
+        callback_called = [False]
+
+        def on_failure(req, resp, resrc, exception):
+            callback_called[0] = True
+            assert isinstance(exception, falcon.HTTPUnauthorized)
+            assert not isinstance(exception, BackendNotApplicable)
+
+        app = create_app(FalconAuthMiddleware(backend, on_failure=on_failure), resource)
+        client = testing.TestClient(app)
+        cloned_user = user.clone()
+        cloned_user.password = 'incorrect password'
+        auth_token = get_hawk_token(cloned_user)
+        resp = simulate_request(client, '/auth', method='GET', auth_token=auth_token)
+        assert resp.status_code == 401
+        assert callback_called[0], 'on_failure() not called'
 
 
 class TestWithNoneAuth(NoneAuthFixture, ResourceFixture):
@@ -225,48 +353,128 @@ class TestWithNoneAuth(NoneAuthFixture, ResourceFixture):
         assert resp.status_code == 200
         assert resp.json == none_user.to_dict()
 
+
 @hawk_available
 @jwt_available
 class TestWithMultiBackendAuth(MultiBackendAuthFixture, ResourceFixture):
-    def test_valid_auth_success_basic_backend(self, client, user):
+    def test_valid_auth_success_basic_backend(self, user, backend, resource):
+        callback_called = [False]
+
+        def on_success(req, resp, resrc, results):
+            callback_called[0] = True
+            assert isinstance(results['backend'], BasicAuthBackend)
+            assert results['user'] is user
+
+        app = create_app(FalconAuthMiddleware(backend, on_success=on_success), resource)
+        client = testing.TestClient(app)
         auth_token = get_basic_auth_token(user.username, user.password)
         resp = simulate_request(client, '/auth', auth_token=auth_token)
         assert resp.status_code == 200
         assert resp.json == user.to_dict()
+        assert callback_called[0], 'on_success() not called'
 
-    def test_valid_auth_success_token_backend(self, client, user):
+    def test_valid_auth_success_token_backend(self, user, backend, resource):
+        callback_called = [False]
+
+        def on_success(req, resp, resrc, results):
+            callback_called[0] = True
+            assert isinstance(results['backend'], TokenAuthBackend)
+            assert results['user'] is user
+
+        app = create_app(FalconAuthMiddleware(backend, on_success=on_success), resource)
+        client = testing.TestClient(app)
         auth_token = get_token_auth(user)
         resp = simulate_request(client, '/auth', auth_token=auth_token)
         assert resp.status_code == 200
         assert resp.json == user.to_dict()
+        assert callback_called[0], 'on_success() not called'
 
-    def test_valid_auth_success_hawk_backend(self, client, user):
+    def test_valid_auth_success_hawk_backend(self, user, backend, resource):
+        callback_called = [False]
+
+        def on_success(req, resp, resrc, results):
+            callback_called[0] = True
+            assert isinstance(results['backend'], HawkAuthBackend)
+            assert results['user'] is user
+            assert 'receiver' in results
+
+        app = create_app(FalconAuthMiddleware(backend, on_success=on_success), resource)
+        client = testing.TestClient(app)
         auth_token = get_hawk_token(user)
         resp = simulate_request(client, '/auth', method='GET', auth_token=auth_token)
         assert resp.status_code == 200
+        assert callback_called[0], 'on_success() not called'
 
-    def test_valid_auth_success_jwt_backend(self, client, user):
+    def test_valid_auth_success_jwt_backend(self, user, backend, resource):
+        callback_called = [False]
+
+        def on_success(req, resp, resrc, results):
+            callback_called[0] = True
+            assert isinstance(results['backend'], JWTAuthBackend)
+            assert results['user'] is user
+
+        app = create_app(FalconAuthMiddleware(backend, on_success=on_success), resource)
+        client = testing.TestClient(app)
         auth_token = get_jwt_token(user)
         resp = simulate_request(client, '/auth', auth_token=auth_token)
         assert resp.status_code == 200
         assert resp.json == user.to_dict()
+        assert callback_called[0], 'on_success() not called'
 
     def test_invalid_auth_fails(self, client, user):
         auth_token = get_basic_auth_token('Invalid', 'Invalid')
         resp = simulate_request(client, '/auth', auth_token=auth_token)
         assert resp.status_code == 401
-        assert 'Authorization Failed' in resp.text
+        assert resp.json['description'] == 'Authentication Failed'
 
     def test_backend_get_auth_token(self, user, backend):
         auth_token = get_basic_auth_token(user.username, user.password)
         user_payload = {'username': user.username, 'password': user.password}
         assert backend.get_auth_token(user_payload) == auth_token
 
-    def test_backend_raises_exception(self, client, user, backend):
+    def test_backend_raises_unexpected_exception(self, user, backend, resource):
+        callback_called = [False]
+
+        def on_failure(req, resp, resrc, exception):
+            callback_called[0] = True
+            assert isinstance(exception, BackendAuthenticationFailure)
+            assert isinstance(exception.__cause__, CustomException)
+            assert exception.backend is backend
+
+        app = create_app(FalconAuthMiddleware(backend, on_failure=on_failure), resource)
+        client = testing.TestClient(app)
         auth_token = get_basic_auth_token('Invalid', 'Invalid')
         with pytest.raises(CustomException):
-            resp = simulate_request(client, '/auth', auth_token=auth_token,
-                                    query_string='exception=True')
+            simulate_request(client, '/auth', auth_token=auth_token,
+                             query_string='exception=custom')
+        assert callback_called[0], 'on_failure() not called'
+
+    def test_backend_raises_expected_exception(self, client, user, backend):
+        auth_token = get_basic_auth_token('Invalid', 'Invalid')
+        resp = simulate_request(client, '/auth', auth_token=auth_token,
+                                query_string='exception=unauthorized')
+        assert resp.status_code == 401
+
+
+class TestWithEarlyExitMultiAuthBackend(EarlyExitMultiBackendAuthFixture, ResourceFixture):
+
+    def test_invalid_auth_fails_and_exits(self, user, backend, resource):
+        callback_called = [False]
+
+        def on_failure(req, resp, resrc, exception):
+            callback_called[0] = True
+            assert isinstance(exception, BackendAuthenticationFailure)
+            assert isinstance(exception.backend, HawkAuthBackend)
+
+        app = create_app(FalconAuthMiddleware(backend, on_failure=on_failure), resource)
+        client = testing.TestClient(app)
+        auth_token = get_hawk_token(user, timestamp=int(time.time()) + 3600)
+        resp = simulate_request(client, '/auth', method='GET', auth_token=auth_token)
+        assert resp.status_code == 401
+        assert 'TokenExpired' in resp.json['description']
+        assert callback_called[0], 'on_failure() not called'
+
+
 
 
 class TestWithExemptRoute(BasicAuthFixture, ResourceFixture):
@@ -336,7 +544,7 @@ class TestWithResourceExemptMethod(BasicAuthFixture, ResourceExemptGet):
         assert resp.text == 'Success'
 
 
-def test_auth_middleware_invalid_backend():
+def test_auth_middleware_invalid_backend_type():
     class A(object):
         pass
 
@@ -344,6 +552,7 @@ def test_auth_middleware_invalid_backend():
         FalconAuthMiddleware(backend=A())
 
     assert 'Invalid authentication backend' in str(ex.value)
+    assert 'Must inherit falcon.auth.backends.AuthBackend' in str(ex.value)
 
 
 def test_auth_middleware_none_backend():
@@ -364,4 +573,4 @@ def test_optional_jwt_not_present(monkeypatch):
 def test_optional_hawk_not_present(monkeypatch):
     monkeypatch.delattr('falcon_auth.backends.mohawk')
     with pytest.raises(ImportError):
-        HawkAuthBackend(lambda _: None, {})
+        HawkAuthBackend(lambda _: None, lambda _: None, {})
