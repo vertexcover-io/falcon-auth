@@ -31,18 +31,35 @@ class FalconAuthMiddleware(object):
         exempt_methods(list, optional): A list of paths to be excluded while performing
             authentication. Default is ``['OPTIONS']``
 
+        context_key(str, optional): The key to be used when adding the successful
+            authentication results to the req.context dictionary. Default is ``'auth'``.
+
     """
 
-    def __init__(self, backend, exempt_routes=None, exempt_methods=None):
+    def __init__(self, backend, exempt_routes=None, exempt_methods=None, context_key='auth'):
         self.backend = backend
         if not isinstance(backend, AuthBackend):
             raise ValueError(
-                'Invalid authentication backend {0}. '
-                'Must inherit `falcon.auth.backends.AuthBackend`'.format(backend)
+                (
+                    'Invalid authentication backend {0}.'
+                    ' Must inherit falcon.auth.backends.AuthBackend'
+                ).format(backend.__class__.__name__)
+            )
+
+        try:
+            backend.AUTH_TYPE
+        except AttributeError:
+            raise ValueError(
+                (
+                    'Invalid authentication backend {0}.'
+                    ' Must define AUTH_TYPE.'
+                )
+                .format(backend.__class__.__name__)
             )
 
         self.exempt_routes = exempt_routes or []
         self.exempt_methods = exempt_methods or ['OPTIONS']
+        self.context_key = context_key
 
     def _get_auth_settings(self, req, resource):
         auth_settings = getattr(resource, 'auth', {})
@@ -62,4 +79,6 @@ class FalconAuthMiddleware(object):
             return
 
         backend = auth_setting['backend']
-        req.context['user'] = backend.authenticate(req, resp, resource, **kwargs)
+        results = backend.authenticate(req, resp, resource, **kwargs)
+        results.setdefault('type', backend.AUTH_TYPE)
+        req.context[self.context_key] = results

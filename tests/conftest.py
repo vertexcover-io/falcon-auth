@@ -84,7 +84,7 @@ def create_app(auth_middleware, resource):
 class AuthResource:
 
     def on_post(self, req, resp):
-        user = req.context['user']
+        user = req.context['auth']['user']
         resp.body = user.serialize()
 
     def on_get(self, req, resp, **kwargs):
@@ -255,6 +255,9 @@ class CustomException(Exception):
 
 class MultiBackendAuthFixture:
     class ErrorBackend(AuthBackend):
+
+        AUTH_TYPE = 'error'
+
         def __init__(self, user_loader=None):
             pass
 

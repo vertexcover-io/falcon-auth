@@ -336,7 +336,7 @@ class TestWithResourceExemptMethod(BasicAuthFixture, ResourceExemptGet):
         assert resp.text == 'Success'
 
 
-def test_auth_middleware_invalid_backend():
+def test_auth_middleware_invalid_backend_type():
     class A(object):
         pass
 
@@ -344,6 +344,19 @@ def test_auth_middleware_invalid_backend():
         FalconAuthMiddleware(backend=A())
 
     assert 'Invalid authentication backend' in str(ex.value)
+    assert 'Must inherit falcon.auth.backends.AuthBackend' in str(ex.value)
+
+
+def test_auth_middleware_invalid_backend_missing_auth_type():
+    class A(AuthBackend):
+        def __init__(self):
+            pass
+
+    with pytest.raises(ValueError) as ex:
+        FalconAuthMiddleware(backend=A())
+
+    assert 'Invalid authentication backend' in str(ex.value)
+    assert 'Must define AUTH_TYPE' in str(ex.value)
 
 
 def test_auth_middleware_none_backend():
