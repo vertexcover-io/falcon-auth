@@ -490,6 +490,8 @@ class HawkAuthBackend(AuthBackend):
             raise falcon.HTTPUnauthorized(
                 description='Invalid User')
 
+        return user
+
 
 class MultiAuthBackend(AuthBackend):
     """
