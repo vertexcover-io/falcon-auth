@@ -47,6 +47,14 @@ user to the ``request context``
     class ApiResource:
 
         def on_post(self, req, resp):
+            # req.context['auth'] is of the form:
+            #
+            #   {
+            #       'backend': <backend instance that performed the authentication>,
+            #       'user': <user object retrieved from user_loader()>,
+            #       '<backend-specific-item>': <some extra data from the backend>,
+            #       ...
+            #   }
             user = req.context['auth']['user']
             resp.body = "User Found: {}".format(user['username'])
 
@@ -107,17 +115,24 @@ Disable Authentication for a specific resource
         }
 
 
-Accessing Authenticated User
+Accessing Authenticated User (and other artifacts)
 ----------------------------
-Once the middleware authenticates
-the request using the specified authentication backend, it add the authenticated
-user to the `request context`
+Once the middleware authenticates the request using the specified authentication
+backend, it adds the authenticated user to the `request context`.
 
 .. code:: python
 
     class ApiResource:
 
         def on_post(self, req, resp):
+            # req.context['auth'] is of the form:
+            #
+            #   {
+            #       'backend': <backend instance that performed the authentication>,
+            #       'user': <user object retrieved from user_loader()>,
+            #       '<backend-specific-item>': <some extra data from the backend>,
+            #       ...
+            #   }
             user = req.context['auth']['user']
             resp.body = "User Found: {}".format(user['username'])
 
@@ -150,13 +165,14 @@ If you wish to use this backend, be sure to add the optional dependency to your 
 
 Token based authentication using the `Hawk "Holder-Of-Key Authentication Scheme" <https://github.com/hueniverse/hawk>`__
 If you wish to use this backend, be sure to add the optional dependency to your requirements
-(See Python `"extras" <https://www.python.org/dev/peps/pep-0508/#extras>`__): This backend will
-also provide the ``mohawk.Receiver`` object in the ``req.context['auth']`` result.
+(See Python `"extras" <https://www.python.org/dev/peps/pep-0508/#extras>`__):
 
 .. code:: text
 
     falcon-auth[backend-hawk]
 
+This backend will also provide the ``mohawk.Receiver`` object in the ``req.context['auth']``
+result under the 'receiver' key.
 
 + **Dummy Authentication**
 
@@ -164,8 +180,8 @@ Backend which does not perform any authentication checks
 
 + **Multi Backend Authentication**
 
-A Backend which comprises of multiple backends and requires any of them to authenticate
-the request successfully.
+An ``AuthBackend`` which is comprised of multiple backends and requires any of them to
+authenticate the request successfully.
 
 This backend will iterate over all provided backends until one of the following occurs:
 
@@ -191,7 +207,7 @@ Here are the guidelines to follow when writing your backend:
 - Take care to call the base class ``AuthBackend.__init__(user_loader)`` from your `__init__()`
   method
 - Return a dictionary from `authenticate()` which includes at least the `'user'` key holding
-  the user object returned from ``user_loader()``. Other backend-specific keys can be included
+  the user object returned from ``user_loader()``. Other backend-specific items can be included
   as well.
 - Raise a `BackendNotApplicable` exception if the backend determines that it is not
   equipped to handle the request and should defer to a more appropriate backend.
@@ -204,7 +220,9 @@ Tests
 This library comes with a good set of tests which are included in ``tests/``. To run
 install ``pytest`` and simply invoke ``py.test`` or ``python setup.py test``
 to exercise the tests. You can check the test coverage by running
-``py.test --cov falcon_auth``
+``py.test --cov falcon_auth``. **Note:** The test suite makes use of pytest functionality
+that was deprecated in pytest==4.0.0, so be sure to run tests in an environment that
+uses a prior version.
 
 API
 ----
