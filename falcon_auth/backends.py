@@ -27,7 +27,17 @@ except ImportError:
 from falcon_auth.serializer import ExtendedJSONEncoder
 
 
-class AuthorizationNotApplicable(falcon.HTTPUnauthorized):
+class BackendAuthenticationFailure(falcon.HTTPUnauthorized):
+    """
+    Raised when the authentication backend would fail because the request data indicates that a
+    different backend should be applied.
+    """
+    def __init__(self, backend, *args, **kwargs):
+        super(BackendAuthenticationFailure, self).__init__(*args, **kwargs)
+        self.backend = backend
+
+
+class BackendNotApplicable(BackendAuthenticationFailure):
     """
     Raised when the authentication backend would fail because the request data indicates that a
     different backend should be applied.
@@ -39,7 +49,7 @@ class AuthBackend(object):
     Base Class for all authentication backends. If successfully authenticated must
     return the authenticated `user` object. In case authorization header is
     not set properly or there is a credential mismatch, results in an
-    `falcon.HTTPUnauthorized exception` with proper description of the issue
+    `BackendAuthenticationFailure` exception with proper description of the issue.
 
     Args:
         user_loader(function, required): A callback function that is called with the
@@ -47,36 +57,36 @@ class AuthBackend(object):
             header. Returns an `authenticated user` if user exists matching the
             credentials or return `None` to indicate if no user found or credentials
             mismatch.
-
-        auth_header_prefix(string, optional): A prefix that is used with the
-            bases64 encoded credentials in the `Authorization` header.
-
     """
 
-    def __init__(self, user_loader, auth_header_prefix='basic'):
-        raise NotImplementedError("Must be overridden")
+    def __init__(self, user_loader):
+        self.user_loader = user_loader
 
     def parse_auth_token_from_request(self, auth_header):
         """
         Parses and returns Auth token from the request header. Raises
-        `falcon.HTTPUnauthorized exception` with proper error message
+        `BackendNotApplicable` exception with proper error message
         """
         if not auth_header:
-            raise AuthorizationNotApplicable(
+            raise BackendNotApplicable(
+                backend=self,
                 description='Missing Authorization Header')
 
         parts = auth_header.split()
 
         if parts[0].lower() != self.auth_header_prefix.lower():
-            raise AuthorizationNotApplicable(
+            raise BackendNotApplicable(
+                backend=self,
                 description='Invalid Authorization Header: '
                             'Must start with {0}'.format(self.auth_header_prefix))
 
         elif len(parts) == 1:
-            raise AuthorizationNotApplicable(
+            raise BackendNotApplicable(
+                backend=self,
                 description='Invalid Authorization Header: Token Missing')
         elif len(parts) > 2:
-            raise AuthorizationNotApplicable(
+            raise BackendNotApplicable(
+                backend=self,
                 description='Invalid Authorization Header: Contains extra content')
 
         return parts[1]
@@ -84,9 +94,9 @@ class AuthBackend(object):
     def authenticate(self, req, resp, resource):
         """
         Authenticate the request and return the authenticated user. Must raise an
-        a `falcon.HTTPUnauthorized` exception if authentication fails. It is preferred
-        that it raise an `AuthorizationNotApplicable` exception if it's determined that
-        the provided credentials cannot be handled by this backend.
+        a `BackendAuthenticationFailure` exception if authentication fails. It is
+        preferred that it raise an `BackendNotApplicable` exception if it's determined
+        that the provided credentials cannot be handled by this backend.
         """
         raise NotImplementedError(".authenticate() must be overridden.")
 
@@ -163,8 +173,6 @@ class JWTAuthBackend(AuthBackend):
 
     """
 
-    AUTH_TYPE = 'jwt'
-
     def __init__(self, user_loader, secret_key,
                  algorithm='HS256', auth_header_prefix='jwt',
                  leeway=0, expiration_delta=24 * 60 * 60,
@@ -176,6 +184,7 @@ class JWTAuthBackend(AuthBackend):
         except NameError:
             raise ImportError('Optional dependency falcon-auth[backend-jwt] not installed')
 
+        super(JWTAuthBackend, self).__init__(user_loader)
         self.user_loader = user_loader
         self.secret_key = secret_key
         self.algorithm = algorithm
@@ -214,20 +223,23 @@ class JWTAuthBackend(AuthBackend):
                                  audience=self.audience,
                                  leeway=self.leeway)
         except jwt.InvalidTokenError as ex:
-            raise falcon.HTTPUnauthorized(description=str(ex))
+            raise BackendAuthenticationFailure(
+                backend=self,
+                description=str(ex))
 
         return payload
 
     def authenticate(self, req, resp, resource):
         """
         Extract auth token from request `authorization` header, decode jwt token,
-        verify configured claims and return either a ``user``
-        object if successful else raise an `falcon.HTTPUnauthorized exception`
+        verify configured claims and return either a ``user`` object if successful
+        else raise an `BackendAuthenticationFailure` exception.
         """
         payload = self._decode_jwt_token(req)
         user = self.user_loader(payload)
         if not user:
-            raise falcon.HTTPUnauthorized(
+            raise BackendAuthenticationFailure(
+                backend=self,
                 description='Invalid JWT Credentials')
 
         return {
@@ -290,12 +302,8 @@ class BasicAuthBackend(AuthBackend):
 
     """
 
-    AUTH_TYPE = 'basic'
-
-    def __init__(self, user_loader,
-                 auth_header_prefix='Basic'):
-
-        self.user_loader = user_loader
+    def __init__(self, user_loader, auth_header_prefix='Basic'):
+        super(BasicAuthBackend, self).__init__(user_loader)
         self.auth_header_prefix = auth_header_prefix
 
     def _extract_credentials(self, req):
@@ -305,13 +313,15 @@ class BasicAuthBackend(AuthBackend):
             token = base64.b64decode(token).decode('utf-8')
 
         except Exception:
-            raise AuthorizationNotApplicable(
+            raise BackendNotApplicable(
+                backend=self,
                 description='Invalid Authorization Header: Unable to decode credentials')
 
         try:
             username, password = token.split(':', 1)
         except ValueError:
-            raise AuthorizationNotApplicable(
+            raise BackendNotApplicable(
+                backend=self,
                 description='Invalid Authorization: Unable to decode credentials')
 
         return username, password
@@ -319,13 +329,14 @@ class BasicAuthBackend(AuthBackend):
     def authenticate(self, req, resp, resource):
         """
         Extract basic auth token from request `authorization` header,  deocode the
-        token, verifies the username/password and return either a ``user``
-        object if successful else raise an `falcon.HTTPUnauthorized exception`
+        token, verifies the username/password and return either a ``user`` object
+        if successful else raise an `BackendAuthenticationFailure` exception
         """
         username, password = self._extract_credentials(req)
         user = self.user_loader(username, password)
         if not user:
-            raise falcon.HTTPUnauthorized(
+            raise BackendAuthenticationFailure(
+                backend=self,
                 description='Invalid Username/Password')
 
         return {
@@ -372,11 +383,7 @@ class TokenAuthBackend(BasicAuthBackend):
 
        """
 
-    AUTH_TYPE = 'token'
-
-    def __init__(self, user_loader,
-                 auth_header_prefix='Token'):
-
+    def __init__(self, user_loader, auth_header_prefix='Token'):
         super(TokenAuthBackend, self).__init__(user_loader, auth_header_prefix)
 
     def _extract_credentials(self, req):
@@ -387,7 +394,8 @@ class TokenAuthBackend(BasicAuthBackend):
         token = self._extract_credentials(req)
         user = self.user_loader(token)
         if not user:
-            raise falcon.HTTPUnauthorized(
+            raise BackendAuthenticationFailure(
+                backend=self,
                 description='Invalid Token')
 
         return {
@@ -419,10 +427,8 @@ class NoneAuthBackend(AuthBackend):
 
     """
 
-    AUTH_TYPE = 'none'
-
     def __init__(self, user_loader):
-        self.user_loader = user_loader
+        super(NoneAuthBackend, self).__init__(user_loader)
 
     def authenticate(self, req, resp, resource):
         return {
@@ -450,14 +456,12 @@ class HawkAuthBackend(AuthBackend):
             for further details.
     """
 
-    AUTH_TYPE = 'hawk'
-
     def __init__(self, user_loader, receiver_kwargs):
         try:
             mohawk
         except NameError:
             raise ImportError('Optional dependency falcon-auth[backend-hawk] not installed')
-        self.user_loader = user_loader
+        super(HawkAuthBackend, self).__init__(user_loader)
         self.auth_header_prefix = 'Hawk'
         self.receiver_kwargs = receiver_kwargs
 
@@ -467,20 +471,23 @@ class HawkAuthBackend(AuthBackend):
     def parse_auth_token_from_request(self, auth_header):
         """
         Parses and returns the Hawk Authorization header if it is present and well-formed.
-        Raises `AuthorizationNotApplicable` exception with proper error message
+        Raises `BackendNotApplicable` exception with proper error message
         """
         if not auth_header:
-            raise AuthorizationNotApplicable(
+            raise BackendNotApplicable(
+                backend=self,
                 description='Missing Authorization Header')
 
         try:
             auth_header_prefix, _ = auth_header.split(' ', 1)
         except ValueError:
-            raise AuthorizationNotApplicable(
+            raise BackendNotApplicable(
+                backend=self,
                 description='Invalid Authorization Header: Missing Scheme or Parameters')
 
         if auth_header_prefix.lower() != self.auth_header_prefix.lower():
-            raise AuthorizationNotApplicable(
+            raise BackendNotApplicable(
+                backend=self,
                 description='Invalid Authorization Header: '
                             'Must start with {0}'.format(self.auth_header_prefix))
 
@@ -500,7 +507,8 @@ class HawkAuthBackend(AuthBackend):
                 content_type=req.get_header('Content-Type'),
                 **self.receiver_kwargs)
         except mohawk.exc.HawkFail as ex:
-            raise falcon.HTTPUnauthorized(
+            raise BackendAuthenticationFailure(
+                backend=self,
                 description='{0}({1!s})'.format(ex.__class__.__name__, ex),
                 challenges=(
                     [getattr(ex, 'www_authenticate')]
@@ -512,7 +520,8 @@ class HawkAuthBackend(AuthBackend):
         if not user:
             # Should never really happen unless your user objects and their
             # credentials are out of sync.
-            raise falcon.HTTPUnauthorized(
+            raise BackendAuthenticationFailure(
+                backend=self,
                 description='Invalid User')
 
         return {
@@ -524,15 +533,14 @@ class HawkAuthBackend(AuthBackend):
 class MultiAuthBackend(AuthBackend):
     """
     A backend which takes two or more ``AuthBackend`` as inputs and successfully
-    authenticates if either of them succeeds else raises `falcon.HTTPUnauthorized exception`
+    authenticates if any of them succeeds else raises a `BackendNotApplicable`
+    exception.
 
     Args:
-        backends(AuthBackend, required): A list of `AuthBackend` to be used in
+        backends(list[AuthBackend], required): A list of `AuthBackend` to be used in
             order to authenticate the user.
 
     """
-
-    AUTH_TYPE = 'multi'
 
     def __init__(self, *backends):
         if len(backends) <= 1:
@@ -548,17 +556,6 @@ class MultiAuthBackend(AuthBackend):
                     .format(backend.__class__.__name__)
                 )
 
-            try:
-                backend.AUTH_TYPE
-            except AttributeError:
-                raise ValueError(
-                    (
-                        'Invalid authentication backend {0}.'
-                        ' Must define AUTH_TYPE.'
-                    )
-                    .format(backend.__class__.__name__)
-                )
-
         self.backends = backends
 
     def authenticate(self, req, resp, resource):
@@ -566,11 +563,13 @@ class MultiAuthBackend(AuthBackend):
         for backend in self.backends:
             try:
                 results = backend.authenticate(req, resp, resource)
-                results['type'] = backend.AUTH_TYPE
+                # Use setdefault() here to accomodate nested MultiAuthBackends,
+                # though it's unclear when that would be advisable
+                results.setdefault('backend', backend)
                 return results
-            except AuthorizationNotApplicable as ex:
+            except BackendNotApplicable as ex:
                 # This backend didn't understand the Authorization header
-                # (or other attributes of the request) and deigns to handle
+                # (or other attributes of the request) and declined to handle
                 # authentication. If no other backend attempts to authenticate
                 # the request and fails with a challenge, we collect any
                 # challenges presented by these skipped backends and send them
@@ -578,21 +577,16 @@ class MultiAuthBackend(AuthBackend):
                 www_authenticate = ex.headers.get('WWW-Authenticate')
                 if www_authenticate:
                     challenges.append(www_authenticate)
-            except falcon.HTTPUnauthorized as ex:
-                # A backend determined that it should be the one to handle
-                # authentication, but that authentication failed.
-                # If the backend provides a challenge, we do not continue
-                # with any subsequent backends (as we expect them to not
-                # even apply in the first place), but go ahead and send
-                # the 401 response.
-                www_authenticate = ex.headers.get('WWW-Authenticate')
-                if www_authenticate:
-                    challenges = [www_authenticate]
-                    break
 
-        raise falcon.HTTPUnauthorized(
-            description='Authorization Failed',
-            challenges=challenges)
+            # Any other exceptions, including BackendAuthenticationFailure and
+            # falcon.HTTPUnauthorized, will cause authenticatino, and possibly
+            # the entire request, to fail (the different being a 401 vs a 5XX).
+
+        else:
+            raise BackendNotApplicable(
+                backend=self,
+                description='Authentication Failed',
+                challenges=challenges)
 
     def get_auth_token(self, user_payload):
         for backend in self.backends:

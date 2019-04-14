@@ -13,10 +13,10 @@ import falcon
 import pytest
 from falcon import testing
 
-from falcon_auth.backends import AuthBackend, BasicAuthBackend, \
-    JWTAuthBackend, NoneAuthBackend, MultiAuthBackend, HawkAuthBackend
+from falcon_auth.backends import AuthBackend, BasicAuthBackend, TokenAuthBackend, \
+    JWTAuthBackend, NoneAuthBackend, MultiAuthBackend, HawkAuthBackend, \
+    BackendAuthenticationFailure, BackendNotApplicable
 from falcon_auth.middleware import FalconAuthMiddleware
-from falcon_auth.backends import TokenAuthBackend
 from falcon_auth.serializer import ExtendedJSONEncoder
 
 try:
@@ -256,21 +256,18 @@ class CustomException(Exception):
 class MultiBackendAuthFixture:
     class ErrorBackend(AuthBackend):
 
-        AUTH_TYPE = 'error'
-
-        def __init__(self, user_loader=None):
-            pass
-
         def authenticate(self, req, resp, resource):
-            if req.get_param_as_bool('exception'):
+            if req.get_param('exception') == 'custom':
                 raise CustomException
-            else:
+            elif req.get_param('exception') == 'unauthorized':
                 raise falcon.HTTPUnauthorized
+            else:
+                raise BackendNotApplicable(self)
 
     @pytest.fixture(scope='function')
     def backend(self, basic_auth_backend, token_backend, hawk_backend, jwt_backend):
         return MultiAuthBackend(
-            self.ErrorBackend(),
+            self.ErrorBackend(None),
             basic_auth_backend,
             token_backend,
             hawk_backend,
