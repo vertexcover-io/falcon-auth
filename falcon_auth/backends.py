@@ -547,16 +547,16 @@ class MultiAuthBackend(AuthBackend):
     exception.
 
     Args:
+        backends(list[AuthBackend], required): A list of `AuthBackend` to be used in
+            order to authenticate the user.
         early_exit(bool, optional): If early_exit is True, the iteration through the list of
             backends will stop upon the first non-`BackendNotApplicable`
             `BackendAuthenticationFailure` exception it encounters. Otherwise, it will treate all
             `falcon.HTTPUnauthorized` exceptions the same: just move on to the next backend in the
             list. Default is False.
-        backends(list[AuthBackend], required): A list of `AuthBackend` to be used in
-            order to authenticate the user.
     """
 
-    def __init__(self, *backends, early_exit=False):
+    def __init__(self, *backends, **kwargs):
         if len(backends) <= 1:
             raise ValueError('Invalid authentication backend. Must pass more than one backend')
 
@@ -569,8 +569,9 @@ class MultiAuthBackend(AuthBackend):
                     )
                     .format(backend.__class__.__name__)
                 )
-        self.early_exit = early_exit
         self.backends = backends
+        # Examine kwargs since python 2.7 doesn't support keyword args after *args
+        self.early_exit = kwargs.get('early_exit', False)
 
     @staticmethod
     def _append_challenges(challenges, exception):
