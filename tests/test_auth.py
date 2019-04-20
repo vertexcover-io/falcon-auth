@@ -456,6 +456,8 @@ class TestWithMultiBackendAuth(MultiBackendAuthFixture, ResourceFixture):
         assert resp.status_code == 401
 
 
+@hawk_available
+@jwt_available
 class TestWithEarlyExitMultiAuthBackend(EarlyExitMultiBackendAuthFixture, ResourceFixture):
 
     def test_invalid_auth_fails_and_exits(self, user, backend, resource):
