@@ -209,7 +209,6 @@ def hawk_backend(user):
     return HawkAuthBackend(
         user_loader=user_loader,
         credentials_loader=credentials_loader,
-        receiver_kwargs=dict(),
     )
 
 

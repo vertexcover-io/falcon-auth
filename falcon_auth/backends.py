@@ -455,22 +455,22 @@ class HawkAuthBackend(AuthBackend):
             value extracted from the `Hawk` header. Returns an `authenticated user` if the user
             matching the credentials exists or returns `None` to indicate if no user was found.
 
-        receiver_kwargs(dict, required): A dictionary of arguments to be passed through
+        receiver_kwargs(dict, optional): A dictionary of arguments to be passed through
             to the Receiver. One must provide the `credentials_map` function for the
             purposes of looking up a user's credentials from their user id (the same value
             passed to `user_loader()`). See the `docs <https://mohawk.readthedocs.io/en/latest/usage.html#receiving-a-request>`__
             for further details.
     """
 
-    def __init__(self, user_loader, credentials_loader, receiver_kwargs):
+    def __init__(self, user_loader, credentials_loader, receiver_kwargs=None):
         try:
             mohawk
         except NameError:
             raise ImportError('Optional dependency falcon-auth[backend-hawk] not installed')
         super(HawkAuthBackend, self).__init__(user_loader)
         self.auth_header_prefix = 'Hawk'
-        self.receiver_kwargs = receiver_kwargs
         self.load_credentials = credentials_loader
+        self.receiver_kwargs = receiver_kwargs or {}
 
     def parse_auth_token_from_request(self, auth_header):
         """
