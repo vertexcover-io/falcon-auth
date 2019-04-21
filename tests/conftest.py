@@ -13,10 +13,10 @@ import falcon
 import pytest
 from falcon import testing
 
-from falcon_auth.backends import AuthBackend, BasicAuthBackend, \
+from falcon_auth import BasicAuthBackend, TokenAuthBackend, \
     JWTAuthBackend, NoneAuthBackend, MultiAuthBackend, HawkAuthBackend
-from falcon_auth.middleware import FalconAuthMiddleware
-from falcon_auth.backends import TokenAuthBackend
+from falcon_auth import FalconAuthMiddleware
+from falcon_auth.backends import AuthBackend
 from falcon_auth.serializer import ExtendedJSONEncoder
 
 try:
