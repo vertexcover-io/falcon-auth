@@ -5,7 +5,7 @@ import os
 import sys
 from setuptools import setup
 
-version = '2.0.1'
+version = '3.0.0'
 
 if sys.argv[-1] == 'tag':
     os.system("git tag -a %s -m 'version %s'" % (version, version))
@@ -27,7 +27,7 @@ if sys.argv[-1] == 'test':
         modules = map(__import__, test_requirements)
     except ImportError as e:
         err_msg = e.message.replace("No module named ", "")
-        msg = "%s is not installed. Install your test requirments." % err_msg
+        msg = "%s is not installed. Install your test requirements." % err_msg
         raise ImportError(msg)
     os.system('py.test')
     sys.exit()

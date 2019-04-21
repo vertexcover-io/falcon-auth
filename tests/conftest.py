@@ -13,10 +13,10 @@ import falcon
 import pytest
 from falcon import testing
 
-from falcon_auth.backends import AuthBackend, BasicAuthBackend, \
-    JWTAuthBackend, NoneAuthBackend, MultiAuthBackend, HawkAuthBackend
+from falcon_auth.backends import AuthBackend, BasicAuthBackend, TokenAuthBackend, \
+    JWTAuthBackend, NoneAuthBackend, MultiAuthBackend, HawkAuthBackend, \
+    BackendAuthenticationFailure, BackendNotApplicable, UserNotFound
 from falcon_auth.middleware import FalconAuthMiddleware
-from falcon_auth.backends import TokenAuthBackend
 from falcon_auth.serializer import ExtendedJSONEncoder
 
 try:
@@ -84,7 +84,7 @@ def create_app(auth_middleware, resource):
 class AuthResource:
 
     def on_post(self, req, resp):
-        user = req.context['user']
+        user = req.context['auth']['user']
         resp.body = user.serialize()
 
     def on_get(self, req, resp, **kwargs):
@@ -192,26 +192,27 @@ class JWTAuthFixture:
 @pytest.fixture(scope='function')
 def hawk_backend(user):
     def user_loader(username):
-        return user if user.username == username else None
-
-    def credentials_map(username):
         # Our backend will only know about the one user
         creds = {
-            user.username: {
-                'id': user.username,
-                'key': user.password,
-                'algorithm': 'sha256',
-            }
+            user.username: user,
         }
 
-        return creds[username]
+        return creds.get(username)
+
+    def credentials_loader(user):
+        return {
+            'id': user.username,
+            'key': user.password,
+            'algorithm': 'sha256',
+        }
 
     return HawkAuthBackend(
-        user_loader,
-        receiver_kwargs=dict(credentials_map=credentials_map))
+        user_loader=user_loader,
+        credentials_loader=credentials_loader,
+    )
 
 
-def get_hawk_token(user):
+def get_hawk_token(user, timestamp=None):
     sender = mohawk.Sender(
         credentials={
             'id': user.username,
@@ -221,7 +222,8 @@ def get_hawk_token(user):
         url='http://falconframework.org/auth',
         method='GET',
         nonce='ABC123',
-        always_hash_content=False
+        always_hash_content=False,
+        _timestamp=timestamp,
     )
     return str(sender.request_header)
 
@@ -255,23 +257,37 @@ class CustomException(Exception):
 
 class MultiBackendAuthFixture:
     class ErrorBackend(AuthBackend):
-        def __init__(self, user_loader=None):
-            pass
 
         def authenticate(self, req, resp, resource):
-            if req.get_param_as_bool('exception'):
+            if req.get_param('exception') == 'custom':
                 raise CustomException
-            else:
+            elif req.get_param('exception') == 'unauthorized':
                 raise falcon.HTTPUnauthorized
+            else:
+                raise BackendNotApplicable(self)
 
     @pytest.fixture(scope='function')
     def backend(self, basic_auth_backend, token_backend, hawk_backend, jwt_backend):
         return MultiAuthBackend(
-            self.ErrorBackend(),
+            self.ErrorBackend(None),
             basic_auth_backend,
             token_backend,
             hawk_backend,
             jwt_backend,
+        )
+
+
+class EarlyExitMultiBackendAuthFixture(MultiBackendAuthFixture):
+
+    @pytest.fixture(scope='function')
+    def backend(self, basic_auth_backend, token_backend, hawk_backend, jwt_backend):
+        return MultiAuthBackend(
+            self.ErrorBackend(None),
+            basic_auth_backend,
+            token_backend,
+            hawk_backend,
+            jwt_backend,
+            early_exit=True,
         )
 
 
