@@ -101,7 +101,7 @@ def get_basic_auth_token(username, password, prefix='Basic'):
 
 @pytest.fixture(scope='function')
 def basic_auth_backend(user):
-    def user_loader(username, password):
+    def user_loader(username, password, req, resource):
         if user.username == username and user.password == password:
             return user
         return None
@@ -122,7 +122,7 @@ class BasicAuthFixture:
 
 @pytest.fixture(scope='function')
 def token_backend(user):
-    def user_loader(token):
+    def user_loader(token, req, resource):
         if user.token == token:
             return user
         return None
@@ -152,7 +152,7 @@ def secret_key():
 
 @pytest.fixture(scope='function')
 def jwt_backend(user):
-    def user_loader(payload):
+    def user_loader(payload, req, resource):
         if user.id == payload['user']['id']:
             return user
         return None
@@ -191,7 +191,7 @@ class JWTAuthFixture:
 
 @pytest.fixture(scope='function')
 def hawk_backend(user):
-    def user_loader(username):
+    def user_loader(username, req, resource):
         return user if user.username == username else None
 
     def credentials_map(username):

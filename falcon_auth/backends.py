@@ -37,7 +37,7 @@ class AuthBackend(object):
     Args:
         user_loader(function, required): A callback function that is called with the
             decoded `token` extracted from the `Authorization`
-            header. Returns an `authenticated user` if user exists matching the
+            header, the req and resource from falcon. Returns an `authenticated user` if user exists matching the
             credentials or return `None` to indicate if no user found or credentials
             mismatch.
 
@@ -117,7 +117,7 @@ class JWTAuthBackend(AuthBackend):
     Args:
         user_loader(function, required): A callback function that is called with the
             decoded `jwt payload` extracted from the `Authorization`
-            header. Returns an `authenticated user` if user exists matching the
+            header, the req and resource from falcon. Returns an `authenticated user` if user exists matching the
             credentials or return `None` to indicate if no user found or credentials
             mismatch.
 
@@ -217,7 +217,7 @@ class JWTAuthBackend(AuthBackend):
         object if successful else raise an `falcon.HTTPUnauthoried exception`
         """
         payload = self._decode_jwt_token(req)
-        user = self.user_loader(payload)
+        user = self.user_loader(payload, req, resource)
         if not user:
             raise falcon.HTTPUnauthorized(
                 description='Invalid JWT Credentials')
@@ -270,7 +270,7 @@ class BasicAuthBackend(AuthBackend):
     Args:
         user_loader(function, required): A callback function that is called with the user
             credentials (username and password) extracted from the `Authorization`
-            header. Returns an `authenticated user` if user exists matching the
+            header, the req and resource from falcon. Returns an `authenticated user` if user exists matching the
             credentials or return `None` to indicate if no user found or credentials
             mismatch.
 
@@ -311,7 +311,7 @@ class BasicAuthBackend(AuthBackend):
         object if successful else raise an `falcon.HTTPUnauthoried exception`
         """
         username, password = self._extract_credentials(req)
-        user = self.user_loader(username, password)
+        user = self.user_loader(username, password, req, resource)
         if not user:
             raise falcon.HTTPUnauthorized(
                 description='Invalid Username/Password')
@@ -348,7 +348,7 @@ class TokenAuthBackend(BasicAuthBackend):
        Args:
            user_loader(function, required): A callback function that is called
                with the token extracted from the `Authorization`
-               header. Returns an `authenticated user` if user exists matching the
+               header, the req and resource from falcon. Returns an `authenticated user` if user exists matching the
                credentials or return `None` to indicate if no user found or credentials
                mismatch.
 
@@ -369,7 +369,7 @@ class TokenAuthBackend(BasicAuthBackend):
 
     def authenticate(self, req, resp, resource):
         token = self._extract_credentials(req)
-        user = self.user_loader(token)
+        user = self.user_loader(token, req, resource)
         if not user:
             raise falcon.HTTPUnauthorized(
                 description='Invalid Token')
@@ -418,7 +418,7 @@ class HawkAuthBackend(AuthBackend):
 
     Args:
         user_loader(function, required): A callback function that is called with the `id`
-            value extracted from the `Hawk` header. Returns an `authenticated user` if the user
+            value extracted from the `Hawk` header, the req and resource from falcon. Returns an `authenticated user` if the user
             matching the credentials exists or returns `None` to indicate if no user was found.
 
         receiver_kwargs(dict, required): A dictionary of arguments to be passed through
@@ -483,7 +483,7 @@ class HawkAuthBackend(AuthBackend):
                     else []))
 
         # The authentication was successful, get the actual user object now.
-        user = self.user_loader(receiver.parsed_header['id'])
+        user = self.user_loader(receiver.parsed_header['id'], req, resource)
         if not user:
             # Should never really happen unless your user objects and their
             # credentials are out of sync.
