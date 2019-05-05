@@ -48,7 +48,7 @@ class FalconAuthMiddleware(object):
         auth_settings = getattr(resource, 'auth', {})
         auth_settings['exempt_routes'] = self.exempt_routes
         if auth_settings.get('auth_disabled'):
-            auth_settings['exempt_routes'].append(req.path)
+            auth_settings['exempt_routes'].append(req.uri_template)
 
         for key in ('exempt_methods', 'backend'):
             auth_settings[key] = auth_settings.get(key) or getattr(self, key)

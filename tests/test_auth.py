@@ -322,8 +322,14 @@ class TestWithCustomResourceBackend(BasicAuthFixture, ResourceCustomBackend):
 
 class TestWithResourceAuthDisabled(BasicAuthFixture, ResourceAuthDisabled):
 
-    def test_auth_endpoint_no_auth_success(self, client):
+    def test_auth_endpoint_no_auth_success_on_simple_uri(self, client):
         resp = simulate_request(client, '/auth', method='GET')
+        assert resp.status_code == 200
+        assert resp.text == 'Success'
+
+
+    def test_auth_endpoint_no_auth_success_on_uri_template(self, client):
+        resp = simulate_request(client, '/posts/1234', method='GET')
         assert resp.status_code == 200
         assert resp.text == 'Success'
 
