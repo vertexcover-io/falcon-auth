@@ -32,7 +32,7 @@ class AuthBackend(object):
     Base Class for all authentication backends. If successfully authenticated must
     return the authenticated `user` object. In case authorization header is
     not set properly or there is a credential mismatch, results in an
-    `falcon.HTTPUnauthoried exception` with proper description of the issue
+    `falcon.HTTPUnauthorized exception` with proper description of the issue
 
     Args:
         user_loader(function, required): A callback function that is called with the
@@ -147,11 +147,11 @@ class JWTAuthBackend(AuthBackend):
 
         audience(string, optional): Specifies the string that will be specified
             as value of ``aud`` field in the jwt payload. It will also be checked
-            agains the ``aud`` field while decoding.
+            against the ``aud`` field while decoding.
 
         issuer(string, optional): Specifies the string that will be specified
             as value of ``iss`` field in the jwt payload. It will also be checked
-            agains the ``iss`` field while decoding.
+            against the ``iss`` field while decoding.
 
     """
 
@@ -214,7 +214,7 @@ class JWTAuthBackend(AuthBackend):
         """
         Extract auth token from request `authorization` header, decode jwt token,
         verify configured claims and return either a ``user``
-        object if successful else raise an `falcon.HTTPUnauthoried exception`
+        object if successful else raise an `falcon.HTTPUnauthorized exception`
         """
         payload = self._decode_jwt_token(req)
         user = self.user_loader(payload)
@@ -306,9 +306,9 @@ class BasicAuthBackend(AuthBackend):
 
     def authenticate(self, req, resp, resource):
         """
-        Extract basic auth token from request `authorization` header,  deocode the
+        Extract basic auth token from request `authorization` header,  decode the
         token, verifies the username/password and return either a ``user``
-        object if successful else raise an `falcon.HTTPUnauthoried exception`
+        object if successful else raise an `falcon.HTTPUnauthorized exception`
         """
         username, password = self._extract_credentials(req)
         user = self.user_loader(username, password)
@@ -340,8 +340,8 @@ class BasicAuthBackend(AuthBackend):
 
 class TokenAuthBackend(BasicAuthBackend):
     """
-       Implements Simple Token Based Authentication. Clients should authenticate by passing the token key in the "Authorization"
-           HTTP header, prepended with the string "Token ".  For example:
+       Implements Simple Token Based Authentication. Clients should authenticate by passing the token key in the
+           "Authorization" HTTP header, prepended with the string "Token ".  For example:
 
                Authorization: Token 401f7ac837da42b97f613d789819ff93537bee6a
 
@@ -442,7 +442,7 @@ class HawkAuthBackend(AuthBackend):
     def parse_auth_token_from_request(self, auth_header):
         """
         Parses and returns the Hawk Authorization header if it is present and well-formed.
-        Raises `falcon.HTTPUnauthoried exception` with proper error message
+        Raises `falcon.HTTPUnauthorized exception` with proper error message
         """
         if not auth_header:
             raise falcon.HTTPUnauthorized(
@@ -496,7 +496,7 @@ class HawkAuthBackend(AuthBackend):
 class MultiAuthBackend(AuthBackend):
     """
     A backend which takes two or more ``AuthBackend`` as inputs and successfully
-    authenticates if either of them succeeds else raises `falcon.HTTPUnauthoried exception`
+    authenticates if either of them succeeds else raises `falcon.HTTPUnauthorized exception`
 
     Args:
         backends(AuthBackend, required): A list of `AuthBackend` to be used in
