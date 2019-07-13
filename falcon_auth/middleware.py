@@ -12,13 +12,13 @@ class FalconAuthMiddleware(object):
 
     """
     Creates a falcon auth middleware that uses given authentication backend, and some
-    optinal configuration to authenticate requests. After initializing the
+    optional configuration to authenticate requests. After initializing the
     authentication backend globally you can override the backend as well as
-    other configuration for a particular  resource by setting the `auth` attribute
+    other configuration for a particular resource by setting the `auth` attribute
     on it to an instance of this class.
 
     The authentication backend must return an authenticated user which is then
-    set as `request.context.user` to be used further down by resources othewise
+    set as `request.context.user` to be used further down by resources otherwise
     an `falcon.HTTPUnauthorized` exception is raised.
 
     Args:
