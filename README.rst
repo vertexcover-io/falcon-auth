@@ -35,7 +35,9 @@ user to the ``request context``
     import falcon
     from falcon_auth import FalconAuthMiddleware, BasicAuthBackend
 
-    user_loader = lambda username, password: { 'username': username }
+    def user_loader(username, password, req, resource):
+        return {'username': username}
+
     auth_backend = BasicAuthBackend(user_loader)
     auth_middleware = FalconAuthMiddleware(auth_backend,
                         exempt_routes=['/exempt'], exempt_methods=['HEAD'])
@@ -61,20 +63,20 @@ authentication backend on a per resource basis as well
     from falcon_auth import FalconAuthMiddleware, BasicAuthBackend, TokenAuthBackend
 
     # a loader function to fetch user from username, password
-    user_loader = lambda username, password: { 'username': username }
+    def basic_auth_user_loader(username, password, req, resource):
+        return {'username': username}
 
     # basic auth backend
-    basic_auth = BasicAuthBackend(user_loader)
+    basic_auth = BasicAuthBackend(basic_auth_user_loader)
 
     # Auth Middleware that uses basic_auth for authentication
     auth_middleware = FalconAuthMiddleware(basic_auth)
     api = falcon.API(middleware=[auth_middleware])
 
-
     class ApiResource:
 
         auth = {
-            'backend': TokenAuthBackend(user_loader=lambda token: { 'id': 5 }),
+            'backend': TokenAuthBackend(user_loader=lambda token, req, resource: { 'id': 5 }),
             'exempt_methods': ['GET']
         }
 
