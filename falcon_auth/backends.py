@@ -121,7 +121,7 @@ class JWTAuthBackend(AuthBackend):
             credentials or return `None` to indicate if no user found or credentials
             mismatch.
 
-        secrey_key(string, required): A secure key that was used to encode and
+        secret_key(string, required): A secure key that was used to encode and
             create the `jwt token` from a dictionary payload
 
         algorithm(string, optional): Specifies the algorithm that was used
