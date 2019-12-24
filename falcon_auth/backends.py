@@ -201,12 +201,15 @@ class JWTAuthBackend(AuthBackend):
             raise ValueError('Issuer parameter must be provided if '
                              '`iss` claim needs to be verified')
 
-    def _discover_key(self, key_id):
+    def _get_discovery_json(self):
         with urllib.request.urlopen(self.key_discovery_url) as url:
-            data = json.loads(url.read().decode())
-            for key in data["keys"]:
-                if key_id == key["kid"]:
-                    self.secret_key = RSAAlgorithm.from_jwk(json.dumps(key))
+            return json.loads(url.read().decode())
+
+    def _discover_key(self, key_id):
+        data = self._get_discovery_json()
+        for key in data["keys"]:
+            if key_id == key["kid"]:
+                self.secret_key = RSAAlgorithm.from_jwk(json.dumps(key))
 
     def _decode_jwt_token(self, req):
 
