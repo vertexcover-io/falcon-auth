@@ -180,6 +180,17 @@ class TestWithJWTAuth(JWTAuthFixture, ResourceFixture):
         auth_token = backend.get_auth_token(user_payload)
         decoded_token = jwt.decode(auth_token, SECRET_KEY)
         assert decoded_token['user'] == user_payload
+        
+@jwt_available
+class TestWithKeyDiscoveryUrlJwtAuth(KeyDiscoveryJWTAuthFixture, ResourceFixture):
+        
+    def test_x(self, mocker, client, user, backend, auth_token, key_discovery_json):            
+        mocker.patch.object(backend, '_get_discovery_json')
+        backend._get_discovery_json.return_value = key_discovery_json
+        
+        resp = simulate_request(client, '/auth', auth_token=auth_token)
+        assert resp.status_code == 200
+        assert resp.json == user.to_dict()
 
 
 @hawk_available

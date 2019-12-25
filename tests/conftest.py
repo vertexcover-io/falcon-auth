@@ -21,6 +21,8 @@ from falcon_auth.serializer import ExtendedJSONEncoder
 
 try:
     import jwt
+    import json
+    from jwt.algorithms import RSAAlgorithm
     jwt_available = pytest.mark.skipif(False, reason="jwt not installed")
 except ImportError:
     jwt_available = pytest.mark.skipif(True, reason="jwt not installed")
@@ -160,7 +162,7 @@ def jwt_backend(user):
     return JWTAuthBackend(user_loader, SECRET_KEY)
 
 
-def get_jwt_token(user, prefix='JWT'):
+def get_jwt_token(user, prefix='JWT', algorithm = "HS256", secret_key = SECRET_KEY):
     now = datetime.utcnow()
     payload = {
         'user': {
@@ -172,8 +174,8 @@ def get_jwt_token(user, prefix='JWT'):
         'exp': now + timedelta(seconds=EXPIRATION_DELTA)
     }
 
-    jwt_token = jwt.encode(payload, SECRET_KEY,
-                           json_encoder=ExtendedJSONEncoder).decode('utf-8')
+    jwt_token = jwt.encode(payload, secret_key,
+                           json_encoder=ExtendedJSONEncoder, algorithm=algorithm, headers={'kid':'KeyID'}).decode('utf-8')
     return '{prefix} {jwt_token}'.format(prefix=prefix, jwt_token=jwt_token)
 
 
@@ -187,6 +189,68 @@ class JWTAuthFixture:
     def auth_token(self, user):
 
         return get_jwt_token(user)
+
+        
+class KeyDiscoveryJWTAuthFixture:
+
+    @pytest.fixture(scope='function')
+    def auth_token(self, user):
+		# Need to sign the generated JWT with a known private key so it can be verified later
+        return get_jwt_token(user, algorithm = "RS256", secret_key = '''-----BEGIN RSA PRIVATE KEY-----
+MIIEpAIBAAKCAQEAqOvwMnXHNjseNWf1La5cnD3O3KCiFCafRuQYXtHMPZbzge3D
+i9MVoXzoDveXbxGGJtLWoIrEy2OXfzTxP5z5irLvAVRca6h3/d4Fe37x0PH8Atel
+nYZu3lKZGGPCVRwitX23qqqA/WWHfxUdrflD1V2ipUmWxYsb/NV8MZ9pUmedwpG7
+GjAOrpNP+9aSwUrYys08iCHCwLQpLEiwtneHxdVUvd44mJtpBsxbBLQjwHW2CkPq
+mkZv4Tb7451EOCMRIGMJLnUrc0ESGmXm8NMmdL3Hbdu0sg3lrIZiiG1twLaO4Y6z
+JSRjvkXKpMakFiJTH+FsGI0/U+ntxXC1F4wL1wIDAQABAoIBAQCHuoSW1wIJtjjQ
+qsZbPTXWqOc1abCxxlLG0HIwhhy5BDiHFre/+wzvZADGPfUk3ozPVyvzdW0pC83n
+/W83MPdlld7rT5CvRH+dsa7wCxFcVYOr+QBu8VzWMMIo0ceNQX02HVzdugDJGrJj
+z2C4sIfrwj/01YtbESqc3iDbcn5bIezwVmWunAv0JtszGecwVaTHw//7meXIRRFT
+/jzf7dIiNQCX8UbI4/XsL29iNEL6uaK9V3uYN0kEWhBtRoShYWI2M8zOr98u1SQd
+JIe+vaxTpFwYQI39tArcjZCL0D6rK8Fvx1YxzGDMsmddjKxkIUU3AWe604ord1xZ
+z1p892PZAoGBAOTNMxJOubO0eLaJZkHIZ2SyLO3ryxxlADUT3N+wuRV+ovGZ/bbI
+sC7kaAwCJilC79uIlOVFsIijkM5HjdP7l+I9nSEv5o2mO5GzdP+oz6srR23iDuqD
+O2F1Q9sAfwWCjFHmFPdsTzIkVLOdGgWHUCoBSc1dVqS6UtlIF0pcngj1AoGBAL0A
+fvuwB8dQVSnuFvOO11zLDsVC+IA0YRd8kIunQggLkf0uTPQB2itKpJ5DbEIpukXB
+aVx1hwasBgNqUCyW9QnpWb+N52RtYVl61fxtZ+3MGyUkMHBe82CS1BJQdoQmhsc0
+sPRvar/AEbrDsPw5iHMKqECd9eXWA/9K9ixo1HIbAoGAX6lv5gKmX/1fzyoJaA2r
+NQ3N/Tft9xQ/jvGcEqan69XDuPIigy7Lgv+ahRLM88l50bb8UhPeKHMC00xVf0Ed
+EsmiDcMiSS0skNGQZGgnU7DHr6ipheGSjT/jPAisExivJHrnXz+YqSVJiMNxosgd
+e0KIoeWZmUwR4ajjnAK3TJUCgYBG/6e0DpVtdyz22ly+07rtPc5npdfJ+WM7umxm
+OcehVA9cZ4c65nM5bgnW9gb198zkpVpaBEBb7kU4BTjm9zJHreQsBDeXT0uRnIZE
+FClFeDX+RtD3dYPBlIab9qP+0qYwsQeEW1Jjg9hlK1wR897hMHCyDWSxGStZPKSr
+XBnqXwKBgQDGu4MZlszh2tZrlQBoJEQwWJWQi3JT3W3FQYVtRNhJD9op8l2aBERU
+Ia750TQvkhiTz537ukiHFBZRZAwaus85XLXGHqyXf2DboEjpGc/Tfy0PgogRGrLN
+BTyTyCCAxb88aYZ9XCibjNA/ik8wB2jvfz7dOTv2Jop1imRYOmauww==
+-----END RSA PRIVATE KEY-----
+''')
+
+    @pytest.fixture(scope='function')
+    def backend(self, user):
+        return self.key_discovery_jwt_backend(user)
+        
+    @pytest.fixture(scope='function')
+    def key_discovery_json(self):
+        return {
+            'keys':[
+                {
+                    "kty": "RSA",
+                    "e": "AQAB",
+                    "use": "sig",
+                    "kid": "KeyID",
+                    "alg": "RS256",
+                    "n": "qOvwMnXHNjseNWf1La5cnD3O3KCiFCafRuQYXtHMPZbzge3Di9MVoXzoDveXbxGGJtLWoIrEy2OXfzTxP5z5irLvAVRca6h3_d4Fe37x0PH8AtelnYZu3lKZGGPCVRwitX23qqqA_WWHfxUdrflD1V2ipUmWxYsb_NV8MZ9pUmedwpG7GjAOrpNP-9aSwUrYys08iCHCwLQpLEiwtneHxdVUvd44mJtpBsxbBLQjwHW2CkPqmkZv4Tb7451EOCMRIGMJLnUrc0ESGmXm8NMmdL3Hbdu0sg3lrIZiiG1twLaO4Y6zJSRjvkXKpMakFiJTH-FsGI0_U-ntxXC1F4wL1w"
+                }
+            ]
+        }
+        
+    def key_discovery_jwt_backend(self, user):
+        def user_loader(payload):
+            if user.id == payload['user']['id']:
+                return user
+            return None
+
+        return JWTAuthBackend(user_loader, "", "RS256", key_discovery_url="https://test.discovery.com")
 
 
 @pytest.fixture(scope='function')

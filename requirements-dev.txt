@@ -11,3 +11,5 @@ codecov==2.0.3
 coverage==4.0.3
 python-coveralls==2.9.0
 PyYAML<=3.13
+urllib3==1.25.7
+cryptography==2.8

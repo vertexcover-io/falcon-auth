@@ -24,6 +24,14 @@ try:
 except ImportError:
     pass
 
+try:
+    # Optional dependencies for key discovery JWT backend
+    import urllib.request
+    import json
+    from jwt.algorithms import RSAAlgorithm
+except ImportError:
+    pass
+
 from falcon_auth.serializer import ExtendedJSONEncoder
 
 
@@ -153,13 +161,20 @@ class JWTAuthBackend(AuthBackend):
             as value of ``iss`` field in the jwt payload. It will also be checked
             against the ``iss`` field while decoding.
 
+        key_discovery_url(string, optional): Specifies the URL that will be used 
+            to determine which public key to verify incoming JWT with. A JSON 
+            array from this URL will be parsed and the ``kid`` (key id) field of 
+            each object in the array will be compared against the ``kid`` field 
+            of the incoming JWT. 
+
     """
 
     def __init__(self, user_loader, secret_key,
                  algorithm='HS256', auth_header_prefix='jwt',
                  leeway=0, expiration_delta=24 * 60 * 60,
                  audience=None, issuer=None,
-                 verify_claims=None, required_claims=None):
+                 verify_claims=None, required_claims=None,
+                 key_discovery_url=None):
 
         try:
             jwt
@@ -176,6 +191,7 @@ class JWTAuthBackend(AuthBackend):
         self.issuer = issuer
         self.verify_claims = verify_claims or ['signature', 'exp', 'nbf', 'iat']
         self.required_claims = required_claims or ['exp', 'iat', 'nbf']
+        self.key_discovery_url = key_discovery_url
 
         if 'aud' in self.verify_claims and not audience:
             raise ValueError('Audience parameter must be provided if '
@@ -185,13 +201,28 @@ class JWTAuthBackend(AuthBackend):
             raise ValueError('Issuer parameter must be provided if '
                              '`iss` claim needs to be verified')
 
+    def _get_discovery_json(self):
+        with urllib.request.urlopen(self.key_discovery_url) as url:
+            return json.loads(url.read().decode())
+
+    def _discover_key(self, key_id):
+        data = self._get_discovery_json()
+        for key in data["keys"]:
+            if key_id == key["kid"]:
+                self.secret_key = RSAAlgorithm.from_jwk(json.dumps(key))
+
     def _decode_jwt_token(self, req):
 
         # Decodes the jwt token into a payload
         auth_header = req.get_header('Authorization')
         token = self.parse_auth_token_from_request(auth_header=auth_header)
 
-        options = dict(('verify_' + claim, True) for claim in self.verify_claims)
+        if(self.key_discovery_url):
+            headers = jwt.get_unverified_header(token)
+            self._discover_key(headers["kid"])
+
+        options = dict(('verify_' + claim, True)
+                       for claim in self.verify_claims)
 
         options.update(
             dict(('require_' + claim, True) for claim in self.required_claims)
