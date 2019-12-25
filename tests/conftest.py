@@ -31,7 +31,7 @@ try:
     import mohawk
     hawk_available = pytest.mark.skipif(False, reason="hawk not installed")
 except ImportError:
-    hawk_available = pytest.mark.skipif(True, reason="hawk not installed")  
+    hawk_available = pytest.mark.skipif(True, reason="hawk not installed")
 
 EXPIRATION_DELTA = 30 * 60
 

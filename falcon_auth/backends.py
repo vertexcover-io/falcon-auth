@@ -542,7 +542,7 @@ class MultiAuthBackend(AuthBackend):
         for backend in backends:
             if not isinstance(backend, AuthBackend):
                 raise ValueError(('Invalid authentication backend {0}.'
-                                  'Must inherit `falcon.auth.backends.AuthBackend`')
+                                 'Must inherit `falcon.auth.backends.AuthBackend`')
                                  .format(backend))
 
         self.backends = backends
