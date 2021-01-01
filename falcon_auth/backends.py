@@ -5,6 +5,7 @@ from __future__ import division
 
 import base64
 from datetime import timedelta, datetime
+from packaging import version
 
 import falcon
 
@@ -251,6 +252,12 @@ class JWTAuthBackend(AuthBackend):
         if self.issuer is not None:
             payload['iss'] = self.issuer
 
+        if version.parse(jwt.__version__).release[0] >= 2:
+            return jwt.encode(
+                payload,
+                self.secret_key,
+                algorithm=self.algorithm,
+                json_encoder=ExtendedJSONEncoder)
         return jwt.encode(
             payload,
             self.secret_key,
