@@ -7,6 +7,7 @@ import base64
 from datetime import timedelta, datetime
 from packaging import version
 
+import platform
 import falcon
 
 try:
@@ -165,7 +166,8 @@ class JWTAuthBackend(AuthBackend):
         try:
             jwt
         except NameError:
-            raise ImportError('Optional dependency falcon-auth[backend-jwt] not installed')
+            raise ImportError(
+                'Optional dependency falcon-auth[backend-jwt] not installed')
 
         self.user_loader = user_loader
         self.secret_key = secret_key
@@ -175,7 +177,8 @@ class JWTAuthBackend(AuthBackend):
         self.expiration_delta = timedelta(seconds=expiration_delta)
         self.audience = audience
         self.issuer = issuer
-        self.verify_claims = verify_claims or ['signature', 'exp', 'nbf', 'iat']
+        self.verify_claims = verify_claims or [
+            'signature', 'exp', 'nbf', 'iat']
         self.required_claims = required_claims or ['exp', 'iat', 'nbf']
 
         if 'aud' in self.verify_claims and not audience:
@@ -192,7 +195,8 @@ class JWTAuthBackend(AuthBackend):
         auth_header = req.get_header('Authorization')
         token = self.parse_auth_token_from_request(auth_header=auth_header)
 
-        options = dict(('verify_' + claim, True) for claim in self.verify_claims)
+        options = dict(('verify_' + claim, True)
+                       for claim in self.verify_claims)
 
         options.update(
             dict(('require_' + claim, True) for claim in self.required_claims)
@@ -253,6 +257,13 @@ class JWTAuthBackend(AuthBackend):
             payload['iss'] = self.issuer
 
         if version.parse(jwt.__version__).release[0] >= 2:
+            return jwt.encode(
+                payload,
+                self.secret_key,
+                algorithm=self.algorithm,
+                json_encoder=ExtendedJSONEncoder)
+
+        if tuple([int(i) for i in platform.python_version_tuple()[0:2]]) >= (3, 9):
             return jwt.encode(
                 payload,
                 self.secret_key,
@@ -334,7 +345,8 @@ class BasicAuthBackend(AuthBackend):
         password = user_payload.get('password') or None
 
         if not username or not password:
-            raise ValueError('`user_payload` must contain both username and password')
+            raise ValueError(
+                '`user_payload` must contain both username and password')
 
         token = '{username}:{password}'.format(
             username=username, password=password).encode('utf-8')
@@ -434,17 +446,20 @@ class HawkAuthBackend(AuthBackend):
             passed to `user_loader()`). See the `docs <https://mohawk.readthedocs.io/en/latest/usage.html#receiving-a-request>`__
             for further details.
     """
+
     def __init__(self, user_loader, receiver_kwargs):
         try:
             mohawk
         except NameError:
-            raise ImportError('Optional dependency falcon-auth[backend-hawk] not installed')
+            raise ImportError(
+                'Optional dependency falcon-auth[backend-hawk] not installed')
         self.user_loader = user_loader
         self.auth_header_prefix = 'Hawk'
         self.receiver_kwargs = receiver_kwargs
 
         if not callable(self.receiver_kwargs.get('credentials_map')):
-            raise ValueError('Required "credentials_map" function not provided in receiver_kwargs')
+            raise ValueError(
+                'Required "credentials_map" function not provided in receiver_kwargs')
 
     def parse_auth_token_from_request(self, auth_header):
         """
@@ -469,7 +484,8 @@ class HawkAuthBackend(AuthBackend):
         return auth_header
 
     def authenticate(self, req, resp, resource):
-        request_header = self.parse_auth_token_from_request(req.get_header('Authorization'))
+        request_header = self.parse_auth_token_from_request(
+            req.get_header('Authorization'))
 
         try:
             # Validate the Authorization header contents and lookup the user's credentials
@@ -513,12 +529,13 @@ class MultiAuthBackend(AuthBackend):
 
     def __init__(self, *backends):
         if len(backends) <= 1:
-            raise ValueError('Invalid authentication backend. Must pass more than one backend')
+            raise ValueError(
+                'Invalid authentication backend. Must pass more than one backend')
 
         for backend in backends:
             if not isinstance(backend, AuthBackend):
                 raise ValueError(('Invalid authentication backend {0}.'
-                                 'Must inherit `falcon.auth.backends.AuthBackend`')
+                                  'Must inherit `falcon.auth.backends.AuthBackend`')
                                  .format(backend))
 
         self.backends = backends
