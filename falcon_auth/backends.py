@@ -5,9 +5,7 @@ from __future__ import division
 
 import base64
 from datetime import timedelta, datetime
-from packaging import version
 
-import platform
 import falcon
 
 try:
@@ -255,25 +253,18 @@ class JWTAuthBackend(AuthBackend):
 
         if self.issuer is not None:
             payload['iss'] = self.issuer
-
-        if version.parse(jwt.__version__).release[0] >= 2:
+        try:
+            return jwt.encode(
+                payload,
+                self.secret_key,
+                algorithm=self.algorithm,
+                json_encoder=ExtendedJSONEncoder).decode('utf-8')
+        except AttributeError:
             return jwt.encode(
                 payload,
                 self.secret_key,
                 algorithm=self.algorithm,
                 json_encoder=ExtendedJSONEncoder)
-
-        if tuple([int(i) for i in platform.python_version_tuple()[0:2]]) >= (3, 9):
-            return jwt.encode(
-                payload,
-                self.secret_key,
-                algorithm=self.algorithm,
-                json_encoder=ExtendedJSONEncoder)
-        return jwt.encode(
-            payload,
-            self.secret_key,
-            algorithm=self.algorithm,
-            json_encoder=ExtendedJSONEncoder).decode('utf-8')
 
 
 class BasicAuthBackend(AuthBackend):

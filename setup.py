@@ -44,7 +44,6 @@ setup(
     setup_requires=setup_requires,
     install_requires=[
         'falcon',
-        'packaging'
     ],
     extras_require={
         'backend-hawk': ['mohawk>=1.0.0,<2.0.0'],
