@@ -278,13 +278,17 @@ class BasicAuthBackend(AuthBackend):
             bases64 encoded credentials in the `Authorization` header. Default is
             ``basic``
 
+        challenges(list, optional): A list of challenge strings to be set as
+            the WWW-Authenticate header when authentication fails.
     """
 
     def __init__(self, user_loader,
-                 auth_header_prefix='Basic'):
+                 auth_header_prefix='Basic',
+                 challenges=None):
 
         self.user_loader = user_loader
         self.auth_header_prefix = auth_header_prefix
+        self.challenges = challenges
 
     def _extract_credentials(self, req):
         auth = req.get_header('Authorization')
@@ -314,7 +318,8 @@ class BasicAuthBackend(AuthBackend):
         user = self.user_loader(username, password)
         if not user:
             raise falcon.HTTPUnauthorized(
-                description='Invalid Username/Password')
+                description='Invalid Username/Password',
+                challenges=self.challenges)
 
         return user
 
