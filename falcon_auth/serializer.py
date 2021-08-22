@@ -18,7 +18,9 @@ class ExtendedJSONEncoder(json.JSONEncoder):
         * ``datetime.time``
     """
     def default(self, data):
-        if isinstance(data, (datetime.datetime, datetime.date, datetime.time)):
+        if isinstance(data, datetime.datetime):
             return data.isoformat('T')
+        elif isinstance(data, (datetime.date, datetime.time)):
+            return data.isoformat()
         else:
             return super(ExtendedJSONEncoder, self).default(data)

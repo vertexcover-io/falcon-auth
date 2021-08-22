@@ -6,6 +6,12 @@ falcon-auth
 A falcon middleware + authentication backends that adds authentication layer
 to you app/api service.
 
+Notes
+------------
+
+This fork fixes a bug in what appears to be a project that is no longer maintained.
+The fork is being left up as a favor to a friend.
+
 Installation
 ------------
 
