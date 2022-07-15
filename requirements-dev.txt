@@ -7,7 +7,7 @@ pytest<3.3.0
 pytest-cov==2.4.0
 pytest-mock==1.6.0
 tox==2.3.1
-codecov==2.0.3
+codecov==2.0.16
 coverage==4.0.3
 python-coveralls==2.9.0
 PyYAML<=3.13
